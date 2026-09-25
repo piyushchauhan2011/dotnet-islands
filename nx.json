@@ -19,7 +19,7 @@
   },
   "targetDefaults": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["restore", "^build"],
       "cache": true
     },
     "publish": {

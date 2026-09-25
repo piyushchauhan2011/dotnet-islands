@@ -22,6 +22,8 @@ pnpm dev:snapshots
 
 For a container deployment, set strong distinct credentials, `ASPNETCORE_ENVIRONMENT=Production`, `PUBLIC_ORIGIN` to the externally reachable HTTPS origin, persistent PostgreSQL/media/data-protection-key volumes, and run `docker compose --env-file .env up --build -d`. The api and worker images build the same manifest; retain previous hashed assets while cached or stored snapshots reference them. API/worker startup requires a 32+ character shared internal token in snapshot mode. Point the worker's `SNAPSHOT_API_ORIGIN` to the internal .NET service, not the public hostname. Block `/_snapshot-source` at the public ingress as a second boundary; the application also requires `X-Snapshot-Token` and rejects unknown paths. The initial migration/seed and `pnpm snapshots:all` must finish before routing production traffic to the public pages.
 
+The worker container installs only Playwright's pinned Chromium headless shell and its system dependencies on the Node slim image. Local `pnpm dev:snapshots` still requires `pnpm exec playwright install chromium`. Rebuild the worker image when updating Playwright so the browser revision matches the package. Deploy API and worker images built from the same source together: a worker built against a different Vite manifest rejects snapshots from the API.
+
 ## Routes and publication
 
 | Surface | Owner | Cache/index policy |
@@ -68,6 +70,8 @@ pnpm test:e2e                # requires a running snapshot-mode gateway + seeded
 pnpm lighthouse              # four public routes; target 100 in each category
 pnpm snapshots:all           # drain publish queue after a release/edit
 ```
+
+`pnpm build` runs NuGet restore before the inferred .NET build target, including on a clean CI checkout; the build itself uses `--no-restore`.
 
 `TEST_DATABASE_URL` must point to a dedicated database whose name ends `_test`; integration tests create a unique throwaway sibling database and delete only that database. The browser suite exercises the published pages, hydration/no-JavaScript fallback, filtered live search and protected admin/CSRF behavior. `pnpm images` regenerates responsive static image variants and the image manifest. The Vite manifest is read once on server startup; retain old content hashes in `wwwroot/assets` locally and the persistent `/data/assets` volume in containers so cached snapshots can still load them. Inspect the worker log/job table if a new route stays 503: failed captures back off and do not publish partial HTML. An existing page keeps serving its last complete capture until a replacement is ready. `robots.txt` and `sitemap.xml` are served by the gateway from the published catalog.
 

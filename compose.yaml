@@ -58,7 +58,6 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-hotel}:${POSTGRES_PASSWORD:-hotel_local_only}@postgres:5432/${POSTGRES_DB:-hotel}
       SNAPSHOT_INTERNAL_TOKEN: ${SNAPSHOT_INTERNAL_TOKEN:-}
       SNAPSHOT_API_ORIGIN: http://api:8080
-      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
     depends_on:
       postgres:
         condition: service_healthy
