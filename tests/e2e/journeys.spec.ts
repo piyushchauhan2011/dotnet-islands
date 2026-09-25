@@ -2,7 +2,33 @@ import { expect, test } from '@playwright/test'
 
 test('published pages contain crawlable Razor content and rehydrate independent galleries', async ({
   page,
+  request,
 }) => {
+  const html = await (await request.get('/hotels/casa-aurelia')).text()
+  const staticMarkup = await page.evaluate((source) => {
+    const document = new DOMParser().parseFromString(source, 'text/html')
+    return ['Gallery', 'MobileNav'].map((name) => ({
+      fallback: document.querySelectorAll(`[data-fallback-for="${name}"]`)
+        .length,
+      rendered: document.querySelector(`[data-island="${name}"]`)?.children
+        .length,
+    }))
+  }, html)
+  expect(staticMarkup).toEqual([
+    { fallback: 1, rendered: 0 },
+    { fallback: 1, rendered: 0 },
+  ])
+  const searchHtml = await (await request.get('/')).text()
+  const searchMarkup = await page.evaluate((source) => {
+    const document = new DOMParser().parseFromString(source, 'text/html')
+    return {
+      fallback: document.querySelectorAll('[data-fallback-for="SearchForm"]')
+        .length,
+      rendered: document.querySelector('[data-island="SearchForm"]')?.children
+        .length,
+    }
+  }, searchHtml)
+  expect(searchMarkup).toEqual({ fallback: 1, rendered: 0 })
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   const response = await page.goto('/hotels/casa-aurelia')
@@ -13,6 +39,8 @@ test('published pages contain crawlable Razor content and rehydrate independent 
     'href',
     /\/hotels\/casa-aurelia$/,
   )
+  await expect(page.locator('[data-fallback-for="Gallery"]')).toHaveCount(0)
+  await expect(page.locator('[data-fallback-for="MobileNav"]')).toHaveCount(0)
   await page
     .getByRole('button', {
       name: 'Open Casa Aurelia gallery image 1 — property',
@@ -25,6 +53,9 @@ test('published pages contain crawlable Razor content and rehydrate independent 
   )
   await page.keyboard.press('Escape')
   await expect(page.locator('dialog.gallery-lightbox')).not.toBeVisible()
+  await page.goto('/')
+  await expect(page.locator('[data-island="SearchForm"] form')).toBeVisible()
+  await expect(page.locator('[data-fallback-for="SearchForm"]')).toHaveCount(0)
   expect(errors).toEqual([])
 })
 

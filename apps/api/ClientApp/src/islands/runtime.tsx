@@ -58,9 +58,10 @@ async function mount(marker: HTMLElement) {
             child !== marker &&
             child.getAttribute('data-fallback-for') === name,
         ) as HTMLElement | undefined
-        if (fallback) {
-          fallback.hidden = true
-          fallback.style.display = 'none'
+        if (sourceSnapshot) {
+          if (fallback) fallback.hidden = true
+        } else {
+          fallback?.remove()
         }
         if (sourceSnapshot && --pending === 0) window.__SNAPSHOT_READY__ = true
       }, [])

@@ -11,10 +11,6 @@ html:not(.js-enabled) [data-island] {
   display: none !important;
 }
 
-html.js-enabled [data-fallback-for] {
-  display: none;
-}
-
 body {
   min-width: 20rem;
   background: var(--app-body-bg);
