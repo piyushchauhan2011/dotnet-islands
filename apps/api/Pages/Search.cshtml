@@ -18,54 +18,6 @@
                      filters = f,
                      amenities = Model.Data.Amenities.Select(x => new { x.Id, x.Name })
                  }))"></div>
-            <aside data-fallback-for="SearchExperience" class="card search-page__filters">
-                <div class="card-content">
-                    <h2>Filters</h2>
-                    <form action="/search" method="get" aria-label="Filter hotels">
-                        @if (!string.IsNullOrEmpty(f.Destination))
-                        {
-                            <input type="hidden" name="destination" value="@f.Destination" />
-                        }
-                        @if (!string.IsNullOrEmpty(f.CheckIn))
-                        {
-                            <input type="hidden" name="checkIn" value="@f.CheckIn" />
-                        }
-                        @if (!string.IsNullOrEmpty(f.CheckOut))
-                        {
-                            <input type="hidden" name="checkOut" value="@f.CheckOut" />
-                        }
-                        <input type="hidden" name="adults" value="@f.Adults" />
-                        <input type="hidden" name="children" value="@f.Children" />
-                        <label class="label" for="query-filter">Search by name</label>
-                        <input class="input" id="query-filter" name="query" value="@f.Query" />
-                        <label class="label" for="min-price-filter">Min price</label>
-                        <input class="input" id="min-price-filter" name="minPrice"
-                               type="number" min="0" value="@f.MinPrice" />
-                        <label class="label" for="max-price-filter">Max price</label>
-                        <input class="input" id="max-price-filter" name="maxPrice"
-                               type="number" min="0" value="@f.MaxPrice" />
-                        <label class="label" for="rating-filter">Minimum rating</label>
-                        <select id="rating-filter" name="rating">
-                            <option value="">Any rating</option>
-                            <option value="4.5" selected="@(f.Rating == 4.5)">4.5+</option>
-                            <option value="4.7" selected="@(f.Rating == 4.7)">4.7+</option>
-                        </select>
-                        <fieldset>
-                            <legend>Amenities</legend>
-                            @foreach (var amenity in Model.Data.Amenities)
-                            {
-                                var hasAmenity = f.Amenities.Contains(amenity.Id);
-                                <label class="checkbox"><input type="checkbox" name="amenities"
-                                    value="@amenity.Id"
-                                    checked="@hasAmenity" /> @amenity.Name</label>
-                            }
-                        </fieldset>
-                        <label class="checkbox"><input type="checkbox" name="offers" value="true"
-                            checked="@f.Offers" /> Offers available</label>
-                        <button type="submit" class="button is-primary">Apply filters</button>
-                    </form>
-                </div>
-            </aside>
             <section aria-label="Hotel search results">
                 <div class="search-page__results-header">
                     <p><strong>@Model.Data.Total</strong> stays found</p>

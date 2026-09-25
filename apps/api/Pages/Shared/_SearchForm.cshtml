@@ -23,9 +23,9 @@
       class="search-form @(Model.Compact ? "search-form--compact" : "")"
       action="/search" method="get" aria-label="Search hotels">
     <div class="search-form__field search-form__field--destination">
-        <label class="label" for="search-destination">Destination</label>
+        <label class="label" for="search-destination-fallback">Destination</label>
         <div class="select">
-            <select id="search-destination" name="destination">
+            <select id="search-destination-fallback" name="destination">
                 <option value="">Anywhere</option>
                 @foreach (var destination in Model.Destinations)
                 {
@@ -37,19 +37,19 @@
         </div>
     </div>
     <div class="search-form__field">
-        <label class="label" for="search-check-in">Check in</label>
-        <input class="input" id="search-check-in" type="date"
+        <label class="label" for="search-check-in-fallback">Check in</label>
+        <input class="input" id="search-check-in-fallback" type="date"
                name="checkIn" value="@initial?.CheckIn" />
     </div>
     <div class="search-form__field">
-        <label class="label" for="search-check-out">Check out</label>
-        <input class="input" id="search-check-out" type="date"
+        <label class="label" for="search-check-out-fallback">Check out</label>
+        <input class="input" id="search-check-out-fallback" type="date"
                name="checkOut" value="@initial?.CheckOut" />
     </div>
     <div class="search-form__field">
-        <label class="label" for="search-adults">Guests</label>
+        <label class="label" for="search-adults-fallback">Guests</label>
         <div class="select">
-            <select id="search-adults" name="adults">
+            <select id="search-adults-fallback" name="adults">
                 @for (var count = 1; count <= 6; count++)
                 {
                     var selected = count == (initial?.Adults ?? 2);

@@ -34,7 +34,7 @@ The worker container installs only Playwright's pinned Chromium headless shell a
 | `/admin/login`, `/admin/*` | Razor document guard + React Router (admin root only); protected MVC APIs | Private, no-store, noindex |
 | `/api/*`, `/media/{id}/{variant}` | Attribute-routed .NET MVC JSON controllers; allowlisted image variants | API responses or immutable image variants |
 
-The search page renders hotel cards in Razor beside a filter island; results use two columns on desktop and one on mobile. Sorting is a progressively enhanced GET form and pagination uses ordinary links, so both still work without JavaScript.
+The search page renders hotel cards in Razor beside a React filter island; results use two columns on desktop and one on mobile. The filters render once, in React, and require JavaScript. The top search form, sorting GET form, results and pagination remain usable without JavaScript.
 
 Razor renders the article, catalog, hero, cards, metadata, canonical URL, and JSON-LD. The worker visits a token-protected Razor source route, waits for every independent island to mount, preserves the complete document and CSS, and records versioned HTML atomically only if the leased job version still matches. The browser capture does not run in a visitor request. Changes from the CMS transactionally queue affected routes and immediately remove unpublished/renamed URLs. An existing complete snapshot remains available during regeneration; a new route is 503 until its first capture. Unpublished content is removed from the live sitemap and is a real 404. Search facets and inquiry/admin state are never copied into shared snapshots. A generated snapshot contains React island markup and the matching island runtime; without JavaScript the catalog and fallback mobile navigation/search form remain navigable.
 
@@ -74,6 +74,8 @@ pnpm snapshots:all           # drain publish queue after a release/edit
 `pnpm build` runs NuGet restore before the inferred .NET build target, including on a clean CI checkout; the build itself uses `--no-restore`.
 
 `TEST_DATABASE_URL` must point to a dedicated database whose name ends `_test`; integration tests create a unique throwaway sibling database and delete only that database. The browser suite exercises the published pages, hydration/no-JavaScript fallback, filtered live search and protected admin/CSRF behavior. `pnpm images` regenerates responsive static image variants and the image manifest. The Vite manifest is read once on server startup; retain old content hashes in `wwwroot/assets` locally and the persistent `/data/assets` volume in containers so cached snapshots can still load them. Inspect the worker log/job table if a new route stays 503: failed captures back off and do not publish partial HTML. An existing page keeps serving its last complete capture until a replacement is ready. `robots.txt` and `sitemap.xml` are served by the gateway from the published catalog.
+
+The catalog seed does not create guest inquiries. On a clean CI database, the admin inbox shows its empty state until a visitor submits an inquiry.
 
 ### C# quality
 

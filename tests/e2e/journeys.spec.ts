@@ -396,7 +396,7 @@ test('search results occupy two columns beside filters and sort without overlapp
   )
 })
 
-test('search filters and sorting remain usable without JavaScript', async ({
+test('search and sorting remain usable without JavaScript', async ({
   browser,
   baseURL,
 }) => {
@@ -405,19 +405,22 @@ test('search filters and sorting remain usable without JavaScript', async ({
     const page = await context.newPage()
     await page.goto(`${baseURL}/search`)
     await expect(
-      page.getByRole('form', { name: 'Filter hotels' }),
+      page.getByRole('form', { name: 'Search hotels' }),
     ).toBeVisible()
-    await expect(page.locator('.search-page__results .hotel-card')).toHaveCount(
-      9,
-    )
+    await page
+      .getByRole('form', { name: 'Search hotels' })
+      .getByRole('combobox', { name: 'Destination' })
+      .selectOption('amalfi-coast')
+    await page.getByRole('button', { name: 'Search', exact: true }).click()
+    await expect(page).toHaveURL(/destination=amalfi-coast/)
+    await expect(
+      page.locator('.search-page__results .hotel-card').first(),
+    ).toBeVisible()
     await page
       .getByRole('combobox', { name: 'Sort by' })
       .selectOption('price-asc')
     await page.getByRole('button', { name: 'Sort', exact: true }).click()
     await expect(page).toHaveURL(/sort=price-asc/)
-    await expect(page.locator('.search-page__results .hotel-card')).toHaveCount(
-      9,
-    )
   } finally {
     await context.close()
   }
@@ -596,17 +599,28 @@ test('authenticated CMS rejects mutations without CSRF and exposes the inbox', a
   ).toBe(403)
   let documentNavigations = 0
   page.on('request', (navigation) => {
-    if (navigation.isNavigationRequest() && navigation.resourceType() === 'document')
+    if (
+      navigation.isNavigationRequest() &&
+      navigation.resourceType() === 'document'
+    )
       documentNavigations++
   })
   await page.getByRole('link', { name: 'Inquiries' }).click()
   await expect(
     page.getByRole('heading', { name: 'Guest inquiries' }),
   ).toBeVisible()
-  await expect(page.locator('table tbody tr').first()).toBeVisible()
+  await expect(
+    page
+      .getByText('No inquiries yet.')
+      .or(page.locator('table tbody tr').first()),
+  ).toBeVisible()
   await page.locator('.admin-shell__nav a[href="/admin/hotels"]').click()
   await expect(page.locator('.admin-shell__header h1')).toHaveText('Hotels')
-  await page.locator('table tbody tr').first().getByRole('button', { name: 'Edit' }).click()
+  await page
+    .locator('table tbody tr')
+    .first()
+    .getByRole('button', { name: 'Edit' })
+    .click()
   await expect(page.locator('.admin-content-form')).toBeVisible()
   const editorUrl = page.url()
   await page.goBack()
