@@ -6,7 +6,45 @@ on:
   pull_request:
 
 jobs:
-  verify:
+  quality:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: hotel
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: hotel_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hotel -d hotel_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgresql://hotel:ci-only-password@localhost:5432/hotel_test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 12.6.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 26.10.0
+          cache: pnpm
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.401
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm nx show projects
+      - run: pnpm build
+      - run: pnpm lint && pnpm check && pnpm typecheck && pnpm test
+
+  browser:
     runs-on: ubuntu-24.04
     services:
       postgres:
@@ -22,7 +60,6 @@ jobs:
           --health-interval 5s --health-timeout 5s --health-retries 12
     env:
       DATABASE_URL: postgresql://hotel:ci-only-password@localhost:5432/hotel
-      TEST_DATABASE_URL: postgresql://hotel:ci-only-password@localhost:5432/hotel_test
       MEDIA_DIR: ${{ github.workspace }}/data/media
       DATA_PROTECTION_KEYS_DIR: ${{ github.workspace }}/data/keys
       SNAPSHOT_API_ORIGIN: http://127.0.0.1:5000
@@ -38,9 +75,15 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 26.10.0
+          cache: pnpm
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.401
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
       - uses: browser-actions/setup-chrome@v2
       - name: Set isolated runtime credentials
         run: |
@@ -48,11 +91,7 @@ jobs:
           echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm nx show projects
       - run: pnpm build
-      - run: docker compose build api snapshot-worker
-      - name: Provision isolated test database
-        run: PGPASSWORD=ci-only-password psql -h localhost -U hotel -d hotel -c 'CREATE DATABASE hotel_test;'
       - run: pnpm db:migrate
       - run: pnpm db:seed
       - name: Start .NET gateway
@@ -62,9 +101,29 @@ jobs:
             if curl --fail --silent http://127.0.0.1:5000/health > /dev/null; then exit 0; fi
             sleep 2
           done
+          echo "Gateway did not become healthy after $attempt attempts"
           cat /tmp/hotel-api.log
           exit 1
       - run: pnpm snapshots:all
-      - run: pnpm lint && pnpm check && pnpm typecheck && pnpm test
       - run: pnpm test:e2e
       - run: pnpm lighthouse
+
+  containers:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: false
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/snapshot-worker/Dockerfile
+          push: false
+          cache-from: type=gha,scope=snapshot-worker
+          cache-to: type=gha,mode=max,scope=snapshot-worker

@@ -73,6 +73,14 @@ pnpm snapshots:all           # drain publish queue after a release/edit
 
 `pnpm build` runs NuGet restore before the inferred .NET build target, including on a clean CI checkout; the build itself uses `--no-restore`.
 
+CI runs three independent jobs: `quality` builds, checks and runs isolated .NET
+integration tests against `hotel_test`; `browser` builds, seeds a separate database,
+publishes snapshots and runs Playwright and Lighthouse; `containers` builds both
+deployment images. The jobs run concurrently, so container builds and quality
+checks no longer block browser tests. pnpm and NuGet package downloads are cached
+across runs; Docker BuildKit caches install/restore layers by dependency manifests.
+Integration databases, generated snapshots and browser results are never cached.
+
 `TEST_DATABASE_URL` must point to a dedicated database whose name ends `_test`; integration tests create a unique throwaway sibling database and delete only that database. The browser suite exercises the published pages, hydration/no-JavaScript fallback, filtered live search and protected admin/CSRF behavior. `pnpm images` regenerates responsive static image variants and the image manifest. The Vite manifest is read once on server startup; retain old content hashes in `wwwroot/assets` locally and the persistent `/data/assets` volume in containers so cached snapshots can still load them. Inspect the worker log/job table if a new route stays 503: failed captures back off and do not publish partial HTML. An existing page keeps serving its last complete capture until a replacement is ready. `robots.txt` and `sitemap.xml` are served by the gateway from the published catalog.
 
 The catalog seed does not create guest inquiries. On a clean CI database, the admin inbox shows its empty state until a visitor submits an inquiry.
