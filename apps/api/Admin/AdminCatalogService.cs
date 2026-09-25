@@ -5,7 +5,21 @@ using Npgsql;
 
 namespace Hotel.Api.Admin;
 
-internal static class AdminContent
+public enum AdminCatalogStatus
+{
+    Ok, NotFound, Validation, Conflict
+}
+
+public sealed record AdminCatalogResult(
+    AdminCatalogStatus Status, string? Id = null,
+    IReadOnlyDictionary<string, string>? FieldErrors = null)
+{
+    public static AdminCatalogResult Validation(string field, string message) =>
+        new(AdminCatalogStatus.Validation,
+            FieldErrors: new Dictionary<string, string> { [field] = message });
+}
+
+public sealed class AdminCatalogService(HotelDbContext db)
 {
     private static readonly Dictionary<string, string> Singular = new(StringComparer.Ordinal)
     {
@@ -16,21 +30,17 @@ internal static class AdminContent
         ["posts"] = "post"
     };
 
-    public static async Task<IResult> Save(string kind, HttpContext context, HotelDbContext db)
+    public async Task<AdminCatalogResult> SaveAsync(string kind, JsonElement input)
     {
-        if (await AdminApi.AuthError(context, db) is { } unauthorized)
-            return unauthorized;
-        if (AdminApi.MutationError(context) is { } csrf)
-            return csrf;
         if (!Singular.TryGetValue(kind, out var expected))
-            return Results.NotFound();
-        var (inputError, validation) = await ReadSaveInput(context.Request, expected);
-        if (inputError is not null)
-            return inputError;
-        var checkedInput = validation!;
-        var state = new SaveState(db, checkedInput,
-            checkedInput.Id ?? Guid.NewGuid().ToString(), checkedInput.Slug,
-            checkedInput.Status, DateTime.UtcNow);
+            return new(AdminCatalogStatus.NotFound);
+        if (input.ValueKind != JsonValueKind.Object)
+            return AdminCatalogResult.Validation("content", "Content must be an object.");
+        var validation = new AdminValidation(input);
+        if (validation.Kind != expected)
+            return AdminCatalogResult.Validation("kind", $"Expected {expected}.");
+        var state = new SaveState(db, validation, validation.Id ?? Guid.NewGuid().ToString(),
+            validation.Slug, validation.Status, DateTime.UtcNow);
         try
         {
             await using var transaction = await db.Database.BeginTransactionAsync();
@@ -43,62 +53,45 @@ internal static class AdminContent
                 _ => await SavePost(state)
             };
             if (error is not null)
+            {
+                state.Content?.Dispose();
                 return error;
+            }
             await db.SaveChangesAsync();
             await SnapshotInvalidation.Update(db, kind, state.Id, state.OldPath,
                 state.PreviousDestinationId, state.PreviousHotelId);
             await transaction.CommitAsync();
-            return Results.Ok(new
-            {
-                ok = true,
-                id = state.Id
-            });
+            return new(AdminCatalogStatus.Ok, state.Id);
         }
         catch (AdminInputException ex)
         {
             state.Content?.Dispose();
-            return AdminApi.ValidationError(ex.Errors);
+            return new(AdminCatalogStatus.Validation, FieldErrors: ex.Errors);
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException pg
             && pg.SqlState == PostgresErrorCodes.UniqueViolation)
         {
-            return Results.Conflict(new
-            {
-                error = "A record with this slug already exists in its catalog scope.",
-                field = "slug"
-            });
+            return new(AdminCatalogStatus.Conflict);
         }
     }
 
-    private static async Task<(IResult? Error, AdminValidation? Validation)> ReadSaveInput(
-        HttpRequest request, string expected)
+    public async Task<AdminCatalogResult> PublishAsync(string kind, string id, JsonElement input)
     {
-        if (!request.HasJsonContentType())
-            return (Results.BadRequest(new
-            {
-                error = "Expected application/json."
-            }), null);
-        JsonElement input;
-        try
-        {
-            input = await request.ReadFromJsonAsync<JsonElement>();
-        }
-        catch (Exception ex) when (ex is JsonException or BadHttpRequestException)
-        {
-            return (Results.BadRequest(new
-            {
-                error = "Invalid JSON."
-            }), null);
-        }
-        if (input.ValueKind != JsonValueKind.Object)
-            return (Results.BadRequest(new
-            {
-                error = "Content must be an object."
-            }), null);
+        if (!Singular.ContainsKey(kind))
+            return new(AdminCatalogStatus.NotFound);
         var validation = new AdminValidation(input);
-        if (validation.Kind != expected)
-            return (FieldError("kind", $"Expected {expected}."), null);
-        return (null, validation);
+        var status = validation.Enum("status", "draft", "published");
+        if (validation.Errors.Count > 0)
+            return new(AdminCatalogStatus.Validation, FieldErrors: validation.Errors);
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var (error, oldPath, destinationId, hotelId) =
+            await ApplyPublication(kind, id, status, DateTime.UtcNow);
+        if (error is not null)
+            return error;
+        await db.SaveChangesAsync();
+        await SnapshotInvalidation.Update(db, kind, id, oldPath, destinationId, hotelId);
+        await transaction.CommitAsync();
+        return new(AdminCatalogStatus.Ok);
     }
 
     private sealed record SaveState(
@@ -123,7 +116,7 @@ internal static class AdminContent
         }
     }
 
-    private static async Task<IResult?> SaveDestination(SaveState state)
+    private static async Task<AdminCatalogResult?> SaveDestination(SaveState state)
     {
         var (db, validation, id, slug, status, now) =
             (state.Db, state.Validation, state.Id, state.Slug, state.Status, state.Now);
@@ -138,7 +131,7 @@ internal static class AdminContent
         validation.Check();
         var entity = await db.Destinations.FirstOrDefaultAsync(x => x.Id == id);
         if (validation.Id is not null && entity is null)
-            return Results.NotFound();
+            return new(AdminCatalogStatus.NotFound);
         state.OldPath = entity is null ? null : $"/destinations/{entity.Slug}";
         entity ??= new Destination { Id = id, CreatedAt = now };
         entity.Name = name;
@@ -156,7 +149,7 @@ internal static class AdminContent
         return null;
     }
 
-    private static async Task<IResult?> SaveHotel(SaveState state)
+    private static async Task<AdminCatalogResult?> SaveHotel(SaveState state)
     {
         var (db, validation, id, slug, status, now) =
             (state.Db, state.Validation, state.Id, state.Slug, state.Status, state.Now);
@@ -176,10 +169,10 @@ internal static class AdminContent
         var seoDescription = validation.Text("seoDescription", 20, 320);
         validation.Check();
         if (!await db.Destinations.AnyAsync(x => x.Id == destinationId))
-            return FieldError("destinationId", "Destination does not exist.");
+            return AdminCatalogResult.Validation("destinationId", "Destination does not exist.");
         var entity = await db.Hotels.FirstOrDefaultAsync(x => x.Id == id);
         if (validation.Id is not null && entity is null)
-            return Results.NotFound();
+            return new(AdminCatalogStatus.NotFound);
         state.OldPath = entity is null ? null : $"/hotels/{entity.Slug}";
         state.PreviousDestinationId = entity?.DestinationId;
         entity ??= new Hotel.Api.Data.Hotel { Id = id, CreatedAt = now };
@@ -213,7 +206,7 @@ internal static class AdminContent
         SetPublication(entity, status, now);
     }
 
-    private static async Task<IResult?> SaveRoom(SaveState state)
+    private static async Task<AdminCatalogResult?> SaveRoom(SaveState state)
     {
         var (db, validation, id, slug, status, now) =
             (state.Db, state.Validation, state.Id, state.Slug, state.Status, state.Now);
@@ -227,10 +220,10 @@ internal static class AdminContent
         var bed = validation.Text("bed", 2, 120);
         validation.Check();
         if (!await db.Hotels.AnyAsync(x => x.Id == hotelId))
-            return FieldError("hotelId", "Hotel does not exist.");
+            return AdminCatalogResult.Validation("hotelId", "Hotel does not exist.");
         var entity = await db.Rooms.FirstOrDefaultAsync(x => x.Id == id);
         if (validation.Id is not null && entity is null)
-            return Results.NotFound();
+            return new(AdminCatalogStatus.NotFound);
         state.PreviousHotelId = entity?.HotelId;
         entity ??= new Room { Id = id, CreatedAt = now };
         entity.HotelId = hotelId;
@@ -249,7 +242,7 @@ internal static class AdminContent
         return null;
     }
 
-    private static async Task<IResult?> SaveOffer(SaveState state)
+    private static async Task<AdminCatalogResult?> SaveOffer(SaveState state)
     {
         var (db, validation, id, slug, status, now) =
             (state.Db, state.Validation, state.Id, state.Slug, state.Status, state.Now);
@@ -264,12 +257,12 @@ internal static class AdminContent
         validation.Check();
         if (validFrom is not null && validTo is not null
             && string.CompareOrdinal(validTo, validFrom) < 0)
-            return FieldError("validTo", "Must be on or after the start date.");
+            return AdminCatalogResult.Validation("validTo", "Must be on or after the start date.");
         if (!await db.Hotels.AnyAsync(x => x.Id == hotelId))
-            return FieldError("hotelId", "Hotel does not exist.");
+            return AdminCatalogResult.Validation("hotelId", "Hotel does not exist.");
         var entity = await db.Offers.FirstOrDefaultAsync(x => x.Id == id);
         if (validation.Id is not null && entity is null)
-            return Results.NotFound();
+            return new(AdminCatalogStatus.NotFound);
         if (entity is not null)
         {
             var oldHotelSlug = await db.Hotels.Where(x => x.Id == entity.HotelId)
@@ -294,7 +287,7 @@ internal static class AdminContent
         return null;
     }
 
-    private static async Task<IResult?> SavePost(SaveState state)
+    private static async Task<AdminCatalogResult?> SavePost(SaveState state)
     {
         var (db, validation, id, slug, status, now) =
             (state.Db, state.Validation, state.Id, state.Slug, state.Status, state.Now);
@@ -307,10 +300,10 @@ internal static class AdminContent
         var seoDescription = validation.Text("seoDescription", 20, 320);
         validation.Check();
         if (status == "published" && await InvalidEmbeds(db, state.Content) is { } embedError)
-            return FieldError("content", embedError);
+            return AdminCatalogResult.Validation("content", embedError);
         var entity = await db.BlogPosts.FirstOrDefaultAsync(x => x.Id == id);
         if (validation.Id is not null && entity is null)
-            return Results.NotFound();
+            return new(AdminCatalogStatus.NotFound);
         state.OldPath = entity is null ? null : $"/blog/{entity.Slug}";
         entity ??= new BlogPost { Id = id, CreatedAt = now };
         entity.Title = title;
@@ -327,56 +320,8 @@ internal static class AdminContent
         return null;
     }
 
-    private static IResult FieldError(string field, string message) =>
-        AdminApi.ValidationError(new Dictionary<string, string> { [field] = message });
-
-    public static async Task<IResult> Publish(
-        string kind, string id, HttpContext context, HotelDbContext db)
-    {
-        if (await AdminApi.AuthError(context, db) is { } unauthorized)
-            return unauthorized;
-        if (AdminApi.MutationError(context) is { } csrf)
-            return csrf;
-        if (!Singular.ContainsKey(kind))
-            return Results.NotFound();
-        if (!context.Request.HasJsonContentType())
-            return Results.BadRequest(new
-            {
-                error = "Expected application/json."
-            });
-        JsonElement input;
-        try
-        {
-            input = await context.Request.ReadFromJsonAsync<JsonElement>();
-        }
-        catch (Exception ex) when (ex is JsonException or BadHttpRequestException)
-        {
-            return Results.BadRequest(new
-            {
-                error = "Invalid JSON."
-            });
-        }
-        var validation = new AdminValidation(input);
-        var status = validation.Enum("status", "draft", "published");
-        if (validation.Errors.Count > 0)
-            return AdminApi.ValidationError(validation.Errors);
-        await using var transaction = await db.Database.BeginTransactionAsync();
-        var (error, oldPath, destinationId, hotelId) =
-            await ApplyPublication(kind, id, status, db, DateTime.UtcNow);
-        if (error is not null)
-            return error;
-        await db.SaveChangesAsync();
-        await SnapshotInvalidation.Update(db, kind, id, oldPath, destinationId, hotelId);
-        await transaction.CommitAsync();
-        return Results.Ok(new
-        {
-            ok = true
-        });
-    }
-
-    private static async Task<(IResult? Error, string? OldPath, string? DestinationId,
-        string? HotelId)> ApplyPublication(
-        string kind, string id, string status, HotelDbContext db, DateTime now)
+    private async Task<(AdminCatalogResult? Error, string? OldPath, string? DestinationId,
+        string? HotelId)> ApplyPublication(string kind, string id, string status, DateTime now)
     {
         string? oldPath = null;
         string? destinationId = null;
@@ -386,14 +331,14 @@ internal static class AdminContent
             case "destinations":
                 var destination = await db.Destinations.FirstOrDefaultAsync(x => x.Id == id);
                 if (destination is null)
-                    return (Results.NotFound(), null, null, null);
+                    return (new(AdminCatalogStatus.NotFound), null, null, null);
                 oldPath = $"/destinations/{destination.Slug}";
                 SetPublication(destination, status, now);
                 break;
             case "hotels":
                 var hotel = await db.Hotels.FirstOrDefaultAsync(x => x.Id == id);
                 if (hotel is null)
-                    return (Results.NotFound(), null, null, null);
+                    return (new(AdminCatalogStatus.NotFound), null, null, null);
                 oldPath = $"/hotels/{hotel.Slug}";
                 destinationId = hotel.DestinationId;
                 SetPublication(hotel, status, now);
@@ -401,7 +346,7 @@ internal static class AdminContent
             case "rooms":
                 var room = await db.Rooms.FirstOrDefaultAsync(x => x.Id == id);
                 if (room is null)
-                    return (Results.NotFound(), null, null, null);
+                    return (new(AdminCatalogStatus.NotFound), null, null, null);
                 room.Status = status;
                 room.UpdatedAt = now;
                 hotelId = room.HotelId;
@@ -409,7 +354,7 @@ internal static class AdminContent
             case "offers":
                 var offer = await db.Offers.FirstOrDefaultAsync(x => x.Id == id);
                 if (offer is null)
-                    return (Results.NotFound(), null, null, null);
+                    return (new(AdminCatalogStatus.NotFound), null, null, null);
                 var slug = await db.Hotels.Where(x => x.Id == offer.HotelId)
                     .Select(x => x.Slug).FirstAsync();
                 oldPath = $"/hotels/{slug}/offers/{offer.Slug}";
@@ -418,25 +363,24 @@ internal static class AdminContent
                 hotelId = offer.HotelId;
                 break;
             case "posts":
-                return await ApplyPostPublication(db, id, status, now);
+                return await ApplyPostPublication(id, status, now);
         }
         return (null, oldPath, destinationId, hotelId);
     }
-    private static async Task<(IResult? Error, string? OldPath, string? DestinationId,
-        string? HotelId)> ApplyPostPublication(
-        HotelDbContext db, string id, string status, DateTime now)
+
+    private async Task<(AdminCatalogResult? Error, string? OldPath, string? DestinationId,
+        string? HotelId)> ApplyPostPublication(string id, string status, DateTime now)
     {
         var post = await db.BlogPosts.FirstOrDefaultAsync(x => x.Id == id);
         if (post is null)
-            return (Results.NotFound(), null, null, null);
+            return (new(AdminCatalogStatus.NotFound), null, null, null);
         if (status == "published"
             && await InvalidEmbeds(db, post.Content) is { } embedError)
-            return (FieldError("content", embedError), null, null, null);
+            return (AdminCatalogResult.Validation("content", embedError), null, null, null);
         var oldPath = $"/blog/{post.Slug}";
         SetPublication(post, status, now);
         return (null, oldPath, null, null);
     }
-
 
     private static void SetPublication(Destination x, string status, DateTime now)
     {

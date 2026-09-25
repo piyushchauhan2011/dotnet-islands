@@ -32,7 +32,8 @@ internal sealed class HotelPageCatalogService(HotelDbContext db)
                                    join amenity in db.Amenities.AsNoTracking()
                                        on link.AmenityId equals amenity.Id
                                    where room.HotelId == hotel.Id && room.Status == "published"
-                                   select new RoomAmenityView(room.Id, amenity.Name))
+                                   orderby link.RoomId, amenity.Id
+                                   select new RoomAmenityView(room.Id, amenity.Id, amenity.Name))
             .ToListAsync(ct);
         var gallery = await db.HotelGalleryImages.AsNoTracking()
             .Where(x => x.HotelId == hotel.Id)
@@ -48,19 +49,26 @@ internal sealed class HotelPageCatalogService(HotelDbContext db)
         CancellationToken ct)
     {
         var highlights = await db.HotelHighlights.AsNoTracking()
-            .Where(x => x.HotelId == hotel.Id).OrderBy(x => x.SortOrder).ToListAsync(ct);
+            .Where(x => x.HotelId == hotel.Id)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Id).ToListAsync(ct);
         var facts = await db.HotelFacts.AsNoTracking()
-            .Where(x => x.HotelId == hotel.Id).OrderBy(x => x.SortOrder).ToListAsync(ct);
+            .Where(x => x.HotelId == hotel.Id)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Id).ToListAsync(ct);
         var faqs = await db.HotelFaqs.AsNoTracking()
-            .Where(x => x.HotelId == hotel.Id).OrderBy(x => x.SortOrder).ToListAsync(ct);
+            .Where(x => x.HotelId == hotel.Id)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Id).ToListAsync(ct);
         var nearby = await db.HotelNearbyPlaces.AsNoTracking()
-            .Where(x => x.HotelId == hotel.Id).OrderBy(x => x.SortOrder).ToListAsync(ct);
+            .Where(x => x.HotelId == hotel.Id)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Id).ToListAsync(ct);
         var policies = await db.HotelPolicies.AsNoTracking()
-            .Where(x => x.HotelId == hotel.Id).OrderBy(x => x.SortOrder).ToListAsync(ct);
+            .Where(x => x.HotelId == hotel.Id)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Id).ToListAsync(ct);
         var scores = await db.HotelReviewScores.AsNoTracking()
-            .Where(x => x.HotelId == hotel.Id).OrderBy(x => x.SortOrder).ToListAsync(ct);
+            .Where(x => x.HotelId == hotel.Id)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Category).ToListAsync(ct);
         var reviews = await db.HotelReviews.AsNoTracking()
-            .Where(x => x.HotelId == hotel.Id).OrderBy(x => x.SortOrder).ToListAsync(ct);
+            .Where(x => x.HotelId == hotel.Id)
+            .OrderBy(x => x.SortOrder).ThenBy(x => x.Id).ToListAsync(ct);
         return new(hotel, destination, rooms, offers, amenities, roomAmenities, images,
             highlights, facts, faqs, nearby, policies, scores, reviews);
     }

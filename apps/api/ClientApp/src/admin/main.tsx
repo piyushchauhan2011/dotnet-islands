@@ -1,6 +1,17 @@
 import '../styles.scss'
 import { LockKeyhole } from 'lucide-react'
 import { createRoot } from 'react-dom/client'
+import {
+  BrowserRouter,
+  Link,
+  NavLink,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { RichEditor } from './RichEditor'
@@ -139,7 +150,7 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
     cache: 'no-store',
   })
   if (response.status === 401) {
-    if (path !== '/login') window.location.assign('/admin/login')
+    if (path !== '/login') window.location.replace('/admin/login')
     throw new Error('Session expired. Sign in again.')
   }
   if (!response.ok) {
@@ -163,25 +174,39 @@ async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>
 }
 function App() {
-  const [path, setPath] = useState(window.location.pathname)
+  return (
+    <Routes>
+      <Route path="login" element={<Login />} />
+      <Route element={<Shell />}>
+        <Route index element={<Overview />} />
+        <Route path="inquiries" element={<Inbox />} />
+        <Route path="media" element={<Media />} />
+        {sections.map((kind) => (
+          <Route path={kind} key={kind}>
+            <Route index element={<Listing kind={kind} />} />
+            <Route path=":id" element={<CatalogEditor kind={kind} />} />
+          </Route>
+        ))}
+        <Route path="*" element={<p>Section not found.</p>} />
+      </Route>
+    </Routes>
+  )
+}
+
+function CatalogEditor({ kind }: { kind: Section }) {
+  const { id } = useParams()
+  return <Editor key={`${kind}/${id}`} kind={kind} id={id!} />
+}
+
+function Shell() {
+  const location = useLocation()
   const [error, setError] = useState('')
+  const parts = location.pathname.split('/').filter(Boolean)
+  const section = parts[0] ?? 'overview'
   useEffect(() => {
-    const changed = () => {
-      setPath(window.location.pathname)
-      setError('')
-    }
-    window.addEventListener('popstate', changed)
-    return () => window.removeEventListener('popstate', changed)
-  }, [])
-  function navigate(url: string) {
-    window.history.pushState(null, '', url)
-    setPath(url)
     setError('')
     window.scrollTo(0, 0)
-  }
-  const parts = path.split('/').filter(Boolean)
-  if (path === '/admin/login') return <Login />
-  const section = parts[1] ?? 'overview'
+  }, [location.pathname])
   const nav = [
     { label: 'Overview', path: '/admin' },
     ...[
@@ -200,30 +225,22 @@ function App() {
         <aside className="admin-shell__sidebar">
           <div className="admin-shell__sidebar-inner">
             <div className="admin-shell__brand">
-              <a
-                href="/admin"
-                onClick={(event) => {
-                  event.preventDefault()
-                  navigate('/admin')
-                }}
-              >
-                Elsewhere
-              </a>
+              <Link to="/">Elsewhere</Link>
               <p>Admin studio</p>
             </div>
             <nav className="admin-shell__nav" aria-label="Admin navigation">
               {nav.map((item) => (
-                <a
+                <NavLink
                   key={item.path}
-                  href={item.path}
-                  aria-current={path === item.path ? 'page' : undefined}
-                  onClick={(event) => {
-                    event.preventDefault()
-                    navigate(item.path)
-                  }}
+                  to={
+                    item.path === '/admin'
+                      ? '/'
+                      : item.path.slice('/admin'.length)
+                  }
+                  end
                 >
                   {item.label}
-                </a>
+                </NavLink>
               ))}
             </nav>
             <div className="admin-shell__signout">
@@ -231,7 +248,7 @@ function App() {
                 className="button is-ghost"
                 onClick={() => {
                   void api('/logout', { method: 'POST' })
-                    .then(() => window.location.assign('/admin/login'))
+                    .then(() => window.location.replace('/admin/login'))
                     .catch((cause) => setError(String(cause)))
                 }}
               >
@@ -244,8 +261,8 @@ function App() {
           <header className="admin-shell__header">
             <p className="eyebrow">ELSEWHERE ADMIN</p>
             <h1>
-              {parts[2]
-                ? `${parts[2] === 'new' ? 'New' : 'Edit'} ${singularLabels[section as Section] ?? section}`
+              {parts[1]
+                ? `${parts[1] === 'new' ? 'New' : 'Edit'} ${singularLabels[section as Section] ?? section}`
                 : (labels[section] ?? 'Overview')}
             </h1>
           </header>
@@ -254,27 +271,7 @@ function App() {
               {error}
             </p>
           )}
-          {section === 'overview' && <Overview navigate={navigate} />}
-          {section === 'inquiries' && <Inbox />}
-          {section === 'media' && <Media />}
-          {sections.includes(section as Section) &&
-            (parts[2] ? (
-              <Editor
-                key={path}
-                kind={section as Section}
-                id={parts[2]}
-                navigate={navigate}
-              />
-            ) : (
-              <Listing
-                key={path}
-                kind={section as Section}
-                navigate={navigate}
-              />
-            ))}
-          {!['overview', 'inquiries', 'media', ...sections].includes(
-            section,
-          ) && <p>Section not found.</p>}
+          <Outlet key={location.pathname} />
         </div>
       </div>
     </div>
@@ -296,7 +293,7 @@ function Login() {
           password: form.get('password'),
         }),
       })
-      window.location.assign('/admin')
+      window.location.replace('/admin')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
       setPending(false)
@@ -393,12 +390,13 @@ function Load<T>({
     <>
       {children(state.value, () => {
         setState({})
-        setVersion(version + 1)
+        setVersion((current) => current + 1)
       })}
     </>
   )
 }
-function Overview({ navigate }: { navigate: (url: string) => void }) {
+function Overview() {
+  const navigate = useNavigate()
   return (
     <Load<Dashboard> url="/dashboard">
       {(data) => (
@@ -447,10 +445,7 @@ function Overview({ navigate }: { navigate: (url: string) => void }) {
               ) : (
                 <p>No inquiries yet.</p>
               )}
-              <button
-                className="button"
-                onClick={() => navigate('/admin/inquiries')}
-              >
+              <button className="button" onClick={() => navigate('/inquiries')}>
                 Open inbox
               </button>
             </div>
@@ -460,13 +455,8 @@ function Overview({ navigate }: { navigate: (url: string) => void }) {
     </Load>
   )
 }
-function Listing({
-  kind,
-  navigate,
-}: {
-  kind: Section
-  navigate: (url: string) => void
-}) {
+function Listing({ kind }: { kind: Section }) {
+  const navigate = useNavigate()
   return (
     <Load<Row[]> url={`/${kind}`}>
       {(rows) => (
@@ -474,7 +464,7 @@ function Listing({
           <div className="card-content">
             <button
               className="button is-primary"
-              onClick={() => navigate(`/admin/${kind}/new`)}
+              onClick={() => navigate(`/${kind}/new`)}
             >
               New {kind.slice(0, -1)}
             </button>
@@ -498,9 +488,7 @@ function Listing({
                         <button
                           className="button is-small"
                           onClick={() =>
-                            navigate(
-                              `/admin/${kind}/${encodeURIComponent(row.id)}`,
-                            )
+                            navigate(`/${kind}/${encodeURIComponent(row.id)}`)
                           }
                         >
                           Edit
@@ -518,20 +506,21 @@ function Listing({
     </Load>
   )
 }
-function Editor({
-  kind,
-  id,
-  navigate,
-}: {
-  kind: Section
-  id: string
-  navigate: (url: string) => void
-}) {
+function Editor({ kind, id }: { kind: Section; id: string }) {
+  const navigate = useNavigate()
   return (
     <Load<{ record: Row | null; pickers: Pickers }>
       url={`/${kind}/${encodeURIComponent(id)}`}
     >
-      {(data) => <EditorForm kind={kind} data={data} navigate={navigate} />}
+      {(data, reload) => (
+        <EditorForm
+          key={`${data.record?.id ?? 'new'}/${data.record?.status ?? ''}/${data.record?.updatedAt ?? ''}`}
+          kind={kind}
+          data={data}
+          navigate={navigate}
+          reload={reload}
+        />
+      )}
     </Load>
   )
 }
@@ -539,10 +528,12 @@ function EditorForm({
   kind,
   data,
   navigate,
+  reload,
 }: {
   kind: Section
   data: { record: Row | null; pickers: Pickers }
   navigate: (url: string) => void
+  reload: () => void
 }) {
   const record = data.record
   const [rich, setRich] = useState<RichNode[]>(
@@ -576,8 +567,8 @@ function EditorForm({
         method: 'POST',
         body: JSON.stringify(body),
       })
-      navigate(`/admin/${kind}/${encodeURIComponent(saved.id)}`)
-      if (record) window.location.reload()
+      if (record) reload()
+      else navigate(`/${kind}/${encodeURIComponent(saved.id)}`)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
     } finally {
@@ -595,7 +586,7 @@ function EditorForm({
           status: record.status === 'published' ? 'draft' : 'published',
         }),
       })
-      window.location.reload()
+      reload()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause))
       setPending(false)
@@ -606,7 +597,7 @@ function EditorForm({
       <button
         type="button"
         className="admin-content-form__back"
-        onClick={() => navigate(`/admin/${kind}`)}
+        onClick={() => navigate(`/${kind}`)}
       >
         <span aria-hidden="true">←</span> All {labels[kind].toLowerCase()}
       </button>
@@ -1091,4 +1082,8 @@ function Media() {
   )
 }
 
-createRoot(document.getElementById('admin-root')!).render(<App />)
+createRoot(document.getElementById('admin-root')!).render(
+  <BrowserRouter basename="/admin">
+    <App />
+  </BrowserRouter>,
+)

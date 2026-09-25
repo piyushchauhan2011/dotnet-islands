@@ -11,6 +11,69 @@ namespace Hotel.Api.Tests;
 public sealed class CatalogIntegrationTests(IsolatedCatalog app) : IClassFixture<IsolatedCatalog>
 {
     [Fact]
+    public async Task PublicCatalogKeepsProjectedHomeHotelAndPostShapes()
+    {
+        using var home = await app.Client.GetFromJsonAsync<JsonDocument>("/api/home");
+        var root = home!.RootElement;
+        Assert.True(root.GetProperty("destinations").GetArrayLength() > 0);
+        Assert.True(root.GetProperty("hotels").GetArrayLength() > 0);
+        var offer = root.GetProperty("offers").EnumerateArray().First();
+        Assert.Equal(JsonValueKind.String, offer.GetProperty("hotelSlug").ValueKind);
+        Assert.True(offer.TryGetProperty("title", out _));
+        Assert.False(offer.TryGetProperty("offer", out _));
+        Assert.True(root.GetProperty("posts").GetArrayLength() > 0);
+
+        using var hotel = await app.Client.GetFromJsonAsync<JsonDocument>(
+            "/api/hotels/casa-aurelia");
+        var detail = hotel!.RootElement;
+        Assert.Equal("casa-aurelia",
+            detail.GetProperty("hotel").GetProperty("slug").GetString());
+        var room = detail.GetProperty("rooms").EnumerateArray().First();
+        var amenity = room.GetProperty("amenities").EnumerateArray().First();
+        Assert.Equal(room.GetProperty("id").GetString(), amenity.GetProperty("roomId").GetString());
+        Assert.False(string.IsNullOrEmpty(amenity.GetProperty("id").GetString()));
+        Assert.False(string.IsNullOrEmpty(amenity.GetProperty("name").GetString()));
+        var gallery = detail.GetProperty("gallery").EnumerateArray().First();
+        Assert.True(gallery.TryGetProperty("sortOrder", out _));
+
+        using var post = await app.Client.GetFromJsonAsync<JsonDocument>(
+            "/api/posts/kyoto-considered-weekend-2");
+        Assert.Equal("kyoto-considered-weekend-2",
+            post!.RootElement.GetProperty("post").GetProperty("slug").GetString());
+        Assert.Contains(post.RootElement.GetProperty("embeddedHotels").EnumerateArray(),
+            entry => entry.GetProperty("id").GetString() == "hotel-1-1");
+    }
+
+    [Fact]
+    public async Task AdminMvcRejectsAnonymousInvalidKindsAndMalformedBodies()
+    {
+        using var anonymous = await app.Client.GetAsync("/api/admin/me");
+        Assert.Equal(HttpStatusCode.Unauthorized, anonymous.StatusCode);
+        Assert.Contains("private", anonymous.Headers.CacheControl!.ToString());
+        Assert.Contains("no-store", anonymous.Headers.CacheControl.ToString());
+
+        var session = await SignInAsAdmin();
+        using var client = session.Client;
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await client.GetAsync("/api/admin/not-a-kind")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await client.GetAsync("/api/admin/hotels/does-not-exist")).StatusCode);
+        using var editor = await client.GetFromJsonAsync<JsonDocument>("/api/admin/hotels/new");
+        Assert.Equal(JsonValueKind.Null, editor!.RootElement.GetProperty("record").ValueKind);
+        Assert.True(editor.RootElement.GetProperty("pickers")
+            .GetProperty("destinations").GetArrayLength() > 0);
+        using var malformed = new HttpRequestMessage(HttpMethod.Post, "/api/admin/hotels")
+        {
+            Content = new StringContent("{", Encoding.UTF8, "application/json")
+        };
+        malformed.Headers.Add("X-CSRF-Token", session.Token);
+        using var response = await client.SendAsync(malformed);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var error = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("Invalid JSON.", error.RootElement.GetProperty("error").GetString());
+    }
+
+    [Fact]
     public async Task SearchFiltersPublishedHotels()
     {
         var response = await app.Client.GetAsync(
@@ -142,7 +205,8 @@ public sealed class CatalogIntegrationTests(IsolatedCatalog app) : IClassFixture
             var url = variants.GetProperty(name).GetString();
             Assert.Equal($"/media/{id}/{name}", url);
             using var response = await client.GetAsync(url);
-            response.EnsureSuccessStatusCode();
+            Assert.True(response.IsSuccessStatusCode,
+                response.IsSuccessStatusCode ? "" : await response.Content.ReadAsStringAsync());
             Assert.Equal("image/webp", response.Content.Headers.ContentType?.MediaType);
             var image = await response.Content.ReadAsByteArrayAsync();
             Assert.Equal("RIFF", Encoding.ASCII.GetString(image, 0, 4));

@@ -1,6 +1,4 @@
-using Hotel.Api.Admin;
 using Hotel.Api.Data;
-using Hotel.Api.Public;
 using Microsoft.EntityFrameworkCore;
 
 AppStartup.LoadDevelopmentEnvironment();
@@ -53,8 +51,7 @@ internal static class AppStartup
     internal static void MapEndpoints(WebApplication app)
     {
         app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-        app.MapPublicApi();
-        app.MapAdminApi();
+        app.MapControllers();
         app.MapRazorPages();
     }
 }

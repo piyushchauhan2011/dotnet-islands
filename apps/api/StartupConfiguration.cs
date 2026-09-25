@@ -16,6 +16,7 @@ internal static class StartupServices
         builder.Services.AddDbContext<HotelDbContext>(options => options.UseNpgsql(connection));
         builder.Services.AddAdminServices(builder.Configuration, builder.Environment);
         builder.Services.AddRazorPages();
+        builder.Services.AddControllers();
         builder.Services.AddSingleton<IAssetManifest, AssetManifest>();
         builder.Services.AddResponseCompression(options =>
         {
@@ -23,6 +24,14 @@ internal static class StartupServices
             options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["image/svg+xml"]);
         });
         builder.Services.AddScoped<CatalogPageService>();
+        builder.Services.AddScoped<InquirySubmissionService>();
+        builder.Services.AddScoped<AdminCatalogService>();
+        builder.Services.AddScoped<AdminCatalogQueries>();
+        builder.Services.AddScoped<AdminDashboardQueries>();
+        builder.Services.AddScoped<AdminSessionService>();
+        builder.Services.AddScoped<AdminMediaService>();
+        builder.Services.AddScoped<AdminCacheFilter>();
+        builder.Services.AddScoped<AdminRequestFilter>();
     }
 
     private static string DatabaseConnection(string? databaseUrl)

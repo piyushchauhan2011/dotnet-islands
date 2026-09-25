@@ -594,6 +594,11 @@ test('authenticated CMS rejects mutations without CSRF and exposes the inbox', a
       })
     ).status(),
   ).toBe(403)
+  let documentNavigations = 0
+  page.on('request', (navigation) => {
+    if (navigation.isNavigationRequest() && navigation.resourceType() === 'document')
+      documentNavigations++
+  })
   await page.getByRole('link', { name: 'Inquiries' }).click()
   await expect(
     page.getByRole('heading', { name: 'Guest inquiries' }),
@@ -601,6 +606,16 @@ test('authenticated CMS rejects mutations without CSRF and exposes the inbox', a
   await expect(page.locator('table tbody tr').first()).toBeVisible()
   await page.locator('.admin-shell__nav a[href="/admin/hotels"]').click()
   await expect(page.locator('.admin-shell__header h1')).toHaveText('Hotels')
+  await page.locator('table tbody tr').first().getByRole('button', { name: 'Edit' }).click()
+  await expect(page.locator('.admin-content-form')).toBeVisible()
+  const editorUrl = page.url()
+  await page.goBack()
+  await expect(page.locator('.admin-shell__header h1')).toHaveText('Hotels')
+  await expect(page.locator('table tbody tr').first()).toBeVisible()
+  await page.goForward()
+  await expect(page).toHaveURL(editorUrl)
+  await expect(page.locator('.admin-content-form')).toBeVisible()
+  expect(documentNavigations).toBe(0)
   await page.goto('/admin/hotels/new')
   await expect(page.locator('.admin-content-form')).toBeVisible()
   await expect(page.locator('footer.site-footer')).toBeVisible()
@@ -613,5 +628,11 @@ test('authenticated CMS rejects mutations without CSRF and exposes the inbox', a
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
     390,
   )
+  await page.getByRole('button', { name: 'Sign out' }).click()
+  await expect(page).toHaveURL(/\/admin\/login$/)
+  await page.goto('/admin/hotels/new')
+  await expect(page).toHaveURL(/\/admin\/login$/)
+  await expect(page.locator('header.site-header')).toBeVisible()
+  await expect(page.locator('footer.site-footer')).toBeVisible()
   expect((await request.get('/api/admin/dashboard')).status()).toBe(401)
 })

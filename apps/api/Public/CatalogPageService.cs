@@ -193,7 +193,7 @@ public sealed record HomeOffer(Offer Offer, string HotelSlug);
 public sealed record DestinationCatalog(Destination Destination, List<CatalogHotel> Hotels);
 public sealed record GalleryPhoto(
     string Id, string Src, string Alt, string? Caption, string Category, string? RoomId);
-public sealed record RoomAmenityView(string RoomId, string Name);
+public sealed record RoomAmenityView(string RoomId, string Id, string Name);
 public sealed record HotelCatalog(
     CatalogHotel Hotel, Destination Destination, List<Room> Rooms, List<Offer> Offers,
     List<Amenity> Amenities, List<RoomAmenityView> RoomAmenities, List<GalleryPhoto> Gallery,
