@@ -16,7 +16,10 @@ public sealed record AdminCatalogResult(
 {
     public static AdminCatalogResult Validation(string field, string message) =>
         new(AdminCatalogStatus.Validation,
-            FieldErrors: new Dictionary<string, string> { [field] = message });
+            FieldErrors: new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [field] = message
+            });
 }
 
 public sealed class AdminCatalogService(HotelDbContext db)

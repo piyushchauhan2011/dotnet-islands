@@ -206,7 +206,7 @@ public static class SeedDatabase
     private static async Task InsertLinksAsync(HotelDbContext db, string table, string idColumn,
         IReadOnlyList<(string Id, string AmenityId)> links, CancellationToken cancellationToken)
     {
-        var rows = links.Select(link => new Dictionary<string, string>
+        var rows = links.Select(link => new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [idColumn] = link.Id,
             ["amenity_id"] = link.AmenityId,

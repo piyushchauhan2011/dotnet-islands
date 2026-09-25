@@ -121,7 +121,7 @@ public sealed class AdminMediaController(AdminMediaService media) : ControllerBa
         }
         catch (FormatException)
         {
-            return (ValidationError(new Dictionary<string, string>
+            return (ValidationError(new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["base64"] = "Invalid image encoding."
             }), null);
@@ -130,7 +130,7 @@ public sealed class AdminMediaController(AdminMediaService media) : ControllerBa
 
     private static IActionResult ValidationError(IReadOnlyDictionary<string, string> errors) =>
         new JsonResult(new HttpValidationProblemDetails(errors.ToDictionary(
-            pair => pair.Key, pair => new[] { pair.Value })))
+            pair => pair.Key, pair => new[] { pair.Value }, StringComparer.Ordinal)))
         {
             StatusCode = StatusCodes.Status400BadRequest
         };

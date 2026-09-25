@@ -74,7 +74,8 @@ public sealed class CatalogPageService(HotelDbContext db)
             .FirstOrDefaultAsync(x => x.Slug == slug && x.Status == "published", ct);
         if (post is null)
             return null;
-        return new(post, await VisibleHotels.ToDictionaryAsync(x => x.Id, ct));
+        return new(post, await VisibleHotels.ToDictionaryAsync(
+            x => x.Id, StringComparer.Ordinal, ct));
     }
 
     public async Task<InquiryCatalog?> Inquiry(

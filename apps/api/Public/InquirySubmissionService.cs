@@ -11,7 +11,7 @@ public sealed class InquirySubmissionService(HotelDbContext db, CatalogPageServi
     public async Task<InquirySubmissionResult> SubmitAsync(
         JsonElement payload, CancellationToken ct)
     {
-        var errors = new Dictionary<string, string[]>();
+        var errors = new Dictionary<string, string[]>(StringComparer.Ordinal);
         var input = ParseInput(payload, errors);
         if (errors.Count != 0)
             return new(null, errors);

@@ -112,7 +112,7 @@ public sealed class HotelModel(CatalogPageService catalog) : PublicPageModel(cat
         CanonicalPath = HotelLink(data.Hotel);
         SeoTitle = data.Hotel.SeoTitle;
         SeoDescription = data.Hotel.SeoDescription;
-        StructuredData(new Dictionary<string, object?>
+        StructuredData(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["@context"] = "https://schema.org",
             ["@type"] = "Hotel",
@@ -178,7 +178,7 @@ public sealed class PostModel(CatalogPageService catalog) : PublicPageModel(cata
         CanonicalPath = BlogLink(data.Post);
         SeoTitle = data.Post.SeoTitle;
         SeoDescription = data.Post.SeoDescription;
-        StructuredData(new Dictionary<string, object?>
+        StructuredData(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["@context"] = "https://schema.org",
             ["@type"] = "BlogPosting",

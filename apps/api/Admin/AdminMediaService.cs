@@ -81,7 +81,8 @@ public sealed class AdminMediaService(HotelDbContext db, IConfiguration configur
         var id = Guid.NewGuid().ToString();
         var mediaRoot = Path.GetFullPath(configuration["MEDIA_DIR"] ?? "./data/media");
         var directory = Path.Combine(mediaRoot, id);
-        var variants = Widths.Keys.ToDictionary(key => key, key => $"/media/{id}/{key}");
+        var variants = Widths.Keys.ToDictionary(
+            key => key, key => $"/media/{id}/{key}", StringComparer.Ordinal);
         variants["original"] = $"/media/{id}/original";
         Directory.CreateDirectory(directory);
         try
