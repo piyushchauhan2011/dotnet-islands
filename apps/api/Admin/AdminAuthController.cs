@@ -43,7 +43,7 @@ public sealed class AdminAuthController(AdminSessionService sessions) : Controll
             return InvalidCredentials(validation.Errors);
         if (!System.Net.Mail.MailAddress.TryCreate(email, out var address)
             || address.Address != email)
-            return InvalidCredentials(new Dictionary<string, string>
+            return InvalidCredentials(new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["email"] = "Enter a valid email address."
             });
@@ -100,7 +100,8 @@ public sealed class AdminAuthController(AdminSessionService sessions) : Controll
             type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
             title = "One or more validation errors occurred.",
             status = StatusCodes.Status400BadRequest,
-            errors = errors.ToDictionary(pair => pair.Key, pair => new[] { pair.Value })
+            errors = errors.ToDictionary(
+                pair => pair.Key, pair => new[] { pair.Value }, StringComparer.Ordinal)
         })
         {
             StatusCode = StatusCodes.Status400BadRequest

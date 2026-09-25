@@ -74,7 +74,7 @@ internal static class PublicApiProjection
 
     private static object HotelResponse(HotelCatalog catalog, List<GalleryItem> gallery)
     {
-        var roomNames = catalog.Rooms.ToDictionary(x => x.Id, x => x.Name);
+        var roomNames = catalog.Rooms.ToDictionary(x => x.Id, x => x.Name, StringComparer.Ordinal);
         return new
         {
             catalog.Hotel,
@@ -100,7 +100,7 @@ internal static class PublicApiProjection
         };
     }
 
-    private static object Room(Room room, List<RoomAmenityView> roomAmenities) => new
+    private static object Room(Room room, IReadOnlyList<RoomAmenityView> roomAmenities) => new
     {
         room.Id,
         room.HotelId,

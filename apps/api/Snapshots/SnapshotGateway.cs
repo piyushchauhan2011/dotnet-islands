@@ -185,7 +185,7 @@ public static class SnapshotGateway
             .Select(row => row.Slug).ToListAsync();
         var published = destinations.Select(row => row.Id).ToHashSet(StringComparer.Ordinal);
         var hotelsById = hotels.Where(row => published.Contains(row.DestinationId))
-            .ToDictionary(row => row.Id);
+            .ToDictionary(row => row.Id, StringComparer.Ordinal);
         var paths = new List<string> { "/", "/destinations", "/blog", "/search" };
         paths.AddRange(destinations.Select(row => "/destinations/" + row.Slug));
         paths.AddRange(hotelsById.Values.Select(row => "/hotels/" + row.Slug));

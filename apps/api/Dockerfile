@@ -1,13 +1,18 @@
 FROM node:26.10.0-bookworm-slim AS web-build
 RUN npm install --global pnpm@12.6.0
 WORKDIR /repo
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm install --frozen-lockfile && pnpm --dir apps/api/ClientApp exec vite build
+RUN pnpm --dir apps/api/ClientApp exec vite build
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0.401 AS api-build
 WORKDIR /repo
+COPY global.json Directory.Build.props CodeMetricsConfig.txt ./
+COPY apps/api/api.csproj apps/api/
+RUN dotnet restore apps/api/api.csproj
 COPY . .
-RUN dotnet publish apps/api/api.csproj --configuration Release --output /out
+RUN dotnet publish apps/api/api.csproj --no-restore --configuration Release --output /out
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \

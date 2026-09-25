@@ -73,7 +73,7 @@ public sealed class HomeModel(CatalogPageService catalog) : PublicPageModel(cata
 
 public sealed class DestinationsModel(CatalogPageService catalog) : PublicPageModel(catalog)
 {
-    public List<Destination> Items { get; private set; } = [];
+    public IReadOnlyList<Destination> Items { get; private set; } = [];
     public async Task OnGet(CancellationToken ct)
     {
         CanonicalPath = "/destinations";
@@ -112,7 +112,7 @@ public sealed class HotelModel(CatalogPageService catalog) : PublicPageModel(cat
         CanonicalPath = HotelLink(data.Hotel);
         SeoTitle = data.Hotel.SeoTitle;
         SeoDescription = data.Hotel.SeoDescription;
-        StructuredData(new Dictionary<string, object?>
+        StructuredData(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["@context"] = "https://schema.org",
             ["@type"] = "Hotel",
@@ -156,7 +156,7 @@ public sealed class OfferModel(CatalogPageService catalog) : PublicPageModel(cat
 
 public sealed class BlogModel(CatalogPageService catalog) : PublicPageModel(catalog)
 {
-    public List<BlogPost> Posts { get; private set; } = [];
+    public IReadOnlyList<BlogPost> Posts { get; private set; } = [];
     public async Task OnGet(CancellationToken ct)
     {
         CanonicalPath = "/blog";
@@ -178,7 +178,7 @@ public sealed class PostModel(CatalogPageService catalog) : PublicPageModel(cata
         CanonicalPath = BlogLink(data.Post);
         SeoTitle = data.Post.SeoTitle;
         SeoDescription = data.Post.SeoDescription;
-        StructuredData(new Dictionary<string, object?>
+        StructuredData(new Dictionary<string, object?>(StringComparer.Ordinal)
         {
             ["@context"] = "https://schema.org",
             ["@type"] = "BlogPosting",
@@ -195,7 +195,7 @@ public sealed class PostModel(CatalogPageService catalog) : PublicPageModel(cata
 public sealed class SearchModel(CatalogPageService catalog) : PublicPageModel(catalog)
 {
     public SearchCatalog Data { get; private set; } = null!;
-    public List<Destination> Destinations { get; private set; } = [];
+    public IReadOnlyList<Destination> Destinations { get; private set; } = [];
     public async Task OnGet(CancellationToken ct)
     {
         CanonicalPath = "/search";

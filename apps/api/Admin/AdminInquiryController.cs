@@ -58,7 +58,7 @@ public sealed class AdminInquiryController(HotelDbContext db) : ControllerBase
                 title = "One or more validation errors occurred.",
                 status = StatusCodes.Status400BadRequest,
                 errors = validation.Errors.ToDictionary(
-                    pair => pair.Key, pair => new[] { pair.Value })
+                    pair => pair.Key, pair => new[] { pair.Value }, StringComparer.Ordinal)
             })
             {
                 StatusCode = StatusCodes.Status400BadRequest,

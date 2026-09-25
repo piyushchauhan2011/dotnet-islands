@@ -1,8 +1,10 @@
 FROM node:26.10.0-bookworm-slim AS build
 RUN npm install --global pnpm@12.6.0
 WORKDIR /repo
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm install --frozen-lockfile && pnpm --dir apps/api/ClientApp exec vite build
+RUN pnpm --dir apps/api/ClientApp exec vite build
 
 # The worker only launches headless Chromium; omit the full browser and other engines.
 FROM node:26.10.0-bookworm-slim

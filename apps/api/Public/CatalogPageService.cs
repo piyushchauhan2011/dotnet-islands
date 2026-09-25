@@ -16,12 +16,12 @@ public sealed class CatalogPageService(HotelDbContext db)
         where hotel.Status == "published" && destination.Status == "published"
         select hotel;
 
-    public Task<List<Destination>> Destinations(CancellationToken ct) =>
-        db.Destinations.AsNoTracking().Where(x => x.Status == "published")
+    public async Task<IReadOnlyList<Destination>> Destinations(CancellationToken ct) =>
+        await db.Destinations.AsNoTracking().Where(x => x.Status == "published")
             .OrderBy(x => x.Name).ToListAsync(ct);
 
-    public Task<List<BlogPost>> Posts(CancellationToken ct) =>
-        db.BlogPosts.AsNoTracking().Where(x => x.Status == "published")
+    public async Task<IReadOnlyList<BlogPost>> Posts(CancellationToken ct) =>
+        await db.BlogPosts.AsNoTracking().Where(x => x.Status == "published")
             .OrderByDescending(x => x.PublishedAt).ThenBy(x => x.Id).ToListAsync(ct);
 
     public async Task<HomeCatalog> Home(CancellationToken ct)
@@ -74,7 +74,8 @@ public sealed class CatalogPageService(HotelDbContext db)
             .FirstOrDefaultAsync(x => x.Slug == slug && x.Status == "published", ct);
         if (post is null)
             return null;
-        return new(post, await VisibleHotels.ToDictionaryAsync(x => x.Id, ct));
+        return new(post, await VisibleHotels.ToDictionaryAsync(
+            x => x.Id, StringComparer.Ordinal, ct));
     }
 
     public async Task<InquiryCatalog?> Inquiry(
@@ -187,21 +188,25 @@ public sealed class CatalogPageService(HotelDbContext db)
 }
 
 public sealed record HomeCatalog(
-    List<Destination> Destinations, List<CatalogHotel> Hotels,
-    List<HomeOffer> Offers, List<BlogPost> Posts);
+    IReadOnlyList<Destination> Destinations, IReadOnlyList<CatalogHotel> Hotels,
+    IReadOnlyList<HomeOffer> Offers, IReadOnlyList<BlogPost> Posts);
 public sealed record HomeOffer(Offer Offer, string HotelSlug);
-public sealed record DestinationCatalog(Destination Destination, List<CatalogHotel> Hotels);
+public sealed record DestinationCatalog(
+    Destination Destination, IReadOnlyList<CatalogHotel> Hotels);
 public sealed record GalleryPhoto(
     string Id, string Src, string Alt, string? Caption, string Category, string? RoomId);
 public sealed record RoomAmenityView(string RoomId, string Id, string Name);
 public sealed record HotelCatalog(
-    CatalogHotel Hotel, Destination Destination, List<Room> Rooms, List<Offer> Offers,
-    List<Amenity> Amenities, List<RoomAmenityView> RoomAmenities, List<GalleryPhoto> Gallery,
-    List<HotelHighlight> Highlights, List<HotelFact> Facts, List<HotelFaq> Faqs,
-    List<HotelNearbyPlace> NearbyPlaces, List<HotelPolicy> Policies,
-    List<HotelReviewScore> ReviewScores, List<HotelReview> Reviews);
+    CatalogHotel Hotel, Destination Destination,
+    IReadOnlyList<Room> Rooms, IReadOnlyList<Offer> Offers,
+    IReadOnlyList<Amenity> Amenities, IReadOnlyList<RoomAmenityView> RoomAmenities,
+    IReadOnlyList<GalleryPhoto> Gallery, IReadOnlyList<HotelHighlight> Highlights,
+    IReadOnlyList<HotelFact> Facts, IReadOnlyList<HotelFaq> Faqs,
+    IReadOnlyList<HotelNearbyPlace> NearbyPlaces, IReadOnlyList<HotelPolicy> Policies,
+    IReadOnlyList<HotelReviewScore> ReviewScores, IReadOnlyList<HotelReview> Reviews);
 public sealed record OfferCatalog(Offer Offer, CatalogHotel Hotel, Destination Destination);
-public sealed record PostCatalog(BlogPost Post, Dictionary<string, CatalogHotel> EmbeddedHotels);
+public sealed record PostCatalog(
+    BlogPost Post, IReadOnlyDictionary<string, CatalogHotel> EmbeddedHotels);
 public sealed record InquiryCatalog(CatalogHotel Hotel, Room? Room, Offer? Offer);
 public sealed record SearchResult(CatalogHotel Hotel, Destination Destination);
 public sealed record SearchFilters(
@@ -209,5 +214,5 @@ public sealed record SearchFilters(
     double? MinPrice, double? MaxPrice, double? Rating, string[] Amenities,
     bool Offers, string Sort, int Page);
 public sealed record SearchCatalog(
-    List<SearchResult> Results, List<Amenity> Amenities, SearchFilters Filters,
+    IReadOnlyList<SearchResult> Results, IReadOnlyList<Amenity> Amenities, SearchFilters Filters,
     int Total, int Pages);

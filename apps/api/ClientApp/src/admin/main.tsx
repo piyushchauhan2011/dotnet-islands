@@ -200,13 +200,16 @@ function CatalogEditor({ kind }: { kind: Section }) {
 
 function Shell() {
   const location = useLocation()
-  const [error, setError] = useState('')
-  const parts = location.pathname.split('/').filter(Boolean)
-  const section = parts[0] ?? 'overview'
   useEffect(() => {
-    setError('')
     window.scrollTo(0, 0)
   }, [location.pathname])
+  return <ShellContent key={location.pathname} pathname={location.pathname} />
+}
+
+function ShellContent({ pathname }: { pathname: string }) {
+  const [error, setError] = useState('')
+  const parts = pathname.split('/').filter(Boolean)
+  const section = parts[0] ?? 'overview'
   const nav = [
     { label: 'Overview', path: '/admin' },
     ...[
@@ -271,7 +274,7 @@ function Shell() {
               {error}
             </p>
           )}
-          <Outlet key={location.pathname} />
+          <Outlet />
         </div>
       </div>
     </div>

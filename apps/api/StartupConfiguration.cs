@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Npgsql;
 
+namespace Hotel.Api;
+
 internal static class StartupServices
 {
     internal static void Configure(WebApplicationBuilder builder)
@@ -71,8 +73,8 @@ internal static class StartupMiddleware
             OnPrepareResponse = context =>
             {
                 var path = context.Context.Request.Path;
-                if (path.StartsWithSegments("/assets/assets") ||
-                    path.StartsWithSegments("/images/gen"))
+                if (path.StartsWithSegments("/assets/assets", StringComparison.OrdinalIgnoreCase) ||
+                    path.StartsWithSegments("/images/gen", StringComparison.OrdinalIgnoreCase))
                     context.Context.Response.Headers.CacheControl = ImmutableCacheControl;
             }
         });
@@ -82,10 +84,10 @@ internal static class StartupMiddleware
 
     private static bool ShouldCompress(HttpContext context) =>
         HttpMethods.IsGet(context.Request.Method) &&
-        !context.Request.Path.StartsWithSegments("/api") &&
-        !context.Request.Path.StartsWithSegments("/admin") &&
-        !context.Request.Path.StartsWithSegments("/inquire") &&
-        !context.Request.Path.StartsWithSegments("/media");
+        !context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase) &&
+        !context.Request.Path.StartsWithSegments("/admin", StringComparison.OrdinalIgnoreCase) &&
+        !context.Request.Path.StartsWithSegments("/inquire", StringComparison.OrdinalIgnoreCase) &&
+        !context.Request.Path.StartsWithSegments("/media", StringComparison.OrdinalIgnoreCase);
 
     private static void UseAssetFiles(WebApplication app)
     {
@@ -98,7 +100,8 @@ internal static class StartupMiddleware
             RequestPath = "/assets",
             OnPrepareResponse = context =>
             {
-                if (context.Context.Request.Path.StartsWithSegments("/assets/assets"))
+                if (context.Context.Request.Path.StartsWithSegments(
+                    "/assets/assets", StringComparison.OrdinalIgnoreCase))
                     context.Context.Response.Headers.CacheControl = ImmutableCacheControl;
             }
         });

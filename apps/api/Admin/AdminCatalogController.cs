@@ -84,7 +84,8 @@ public sealed class AdminCatalogController(
             type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
             title = "One or more validation errors occurred.",
             status = 400,
-            errors = result.FieldErrors!.ToDictionary(x => x.Key, x => new[] { x.Value })
+            errors = result.FieldErrors!.ToDictionary(
+                x => x.Key, x => new[] { x.Value }, StringComparer.Ordinal)
         })
         {
             StatusCode = 400,

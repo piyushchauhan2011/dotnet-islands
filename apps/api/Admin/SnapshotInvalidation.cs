@@ -41,10 +41,10 @@ internal static class SnapshotInvalidation
     private static HashSet<string> PublishedPaths(Catalog catalog)
     {
         var destinations = catalog.Destinations.Where(x => x.Status == "published")
-            .ToDictionary(x => x.Id);
+            .ToDictionary(x => x.Id, StringComparer.Ordinal);
         var hotels = catalog.Hotels.Where(x =>
             x.Status == "published" && destinations.ContainsKey(x.DestinationId))
-            .ToDictionary(x => x.Id);
+            .ToDictionary(x => x.Id, StringComparer.Ordinal);
         var offers = catalog.Offers.Where(x =>
             x.Status == "published" && hotels.ContainsKey(x.HotelId));
         var published = new HashSet<string>(StringComparer.Ordinal)
