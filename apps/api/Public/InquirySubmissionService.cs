@@ -140,4 +140,5 @@ public sealed class InquirySubmissionService(HotelDbContext db, CatalogPageServi
     }
 }
 
-public sealed record InquirySubmissionResult(string? Id, Dictionary<string, string[]> FieldErrors);
+public sealed record InquirySubmissionResult(
+    string? Id, IReadOnlyDictionary<string, string[]> FieldErrors);

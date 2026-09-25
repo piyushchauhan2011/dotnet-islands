@@ -73,7 +73,7 @@ public sealed class HomeModel(CatalogPageService catalog) : PublicPageModel(cata
 
 public sealed class DestinationsModel(CatalogPageService catalog) : PublicPageModel(catalog)
 {
-    public List<Destination> Items { get; private set; } = [];
+    public IReadOnlyList<Destination> Items { get; private set; } = [];
     public async Task OnGet(CancellationToken ct)
     {
         CanonicalPath = "/destinations";
@@ -156,7 +156,7 @@ public sealed class OfferModel(CatalogPageService catalog) : PublicPageModel(cat
 
 public sealed class BlogModel(CatalogPageService catalog) : PublicPageModel(catalog)
 {
-    public List<BlogPost> Posts { get; private set; } = [];
+    public IReadOnlyList<BlogPost> Posts { get; private set; } = [];
     public async Task OnGet(CancellationToken ct)
     {
         CanonicalPath = "/blog";
@@ -195,7 +195,7 @@ public sealed class PostModel(CatalogPageService catalog) : PublicPageModel(cata
 public sealed class SearchModel(CatalogPageService catalog) : PublicPageModel(catalog)
 {
     public SearchCatalog Data { get; private set; } = null!;
-    public List<Destination> Destinations { get; private set; } = [];
+    public IReadOnlyList<Destination> Destinations { get; private set; } = [];
     public async Task OnGet(CancellationToken ct)
     {
         CanonicalPath = "/search";

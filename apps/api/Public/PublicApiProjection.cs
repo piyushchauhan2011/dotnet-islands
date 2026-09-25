@@ -100,7 +100,7 @@ internal static class PublicApiProjection
         };
     }
 
-    private static object Room(Room room, List<RoomAmenityView> roomAmenities) => new
+    private static object Room(Room room, IReadOnlyList<RoomAmenityView> roomAmenities) => new
     {
         room.Id,
         room.HotelId,

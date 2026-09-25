@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Npgsql;
 
+namespace Hotel.Api;
+
 internal static class StartupServices
 {
     internal static void Configure(WebApplicationBuilder builder)

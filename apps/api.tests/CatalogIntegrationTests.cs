@@ -160,7 +160,7 @@ public sealed class CatalogIntegrationTests(IsolatedCatalog app) : IClassFixture
             });
         Assert.Equal(HttpStatusCode.Forbidden, forbidden.StatusCode);
         await SaveArticle(client, token);
-        Assert.NotEqual(before, await app.JobVersion(path));
+        Assert.NotEqual(before, await app.JobVersion(path), StringComparer.Ordinal);
         using var live = JsonDocument.Parse(
             await client.GetStringAsync("/api/posts/the-art-of-the-unhurried-arrival"));
         Assert.Equal(
@@ -256,7 +256,7 @@ public sealed class CatalogIntegrationTests(IsolatedCatalog app) : IClassFixture
         using var details = JsonDocument.Parse(
             await client.GetStringAsync("/api/admin/posts/post-1"));
         var record = details.RootElement.GetProperty("record");
-        var updated = new Dictionary<string, object?> { ["kind"] = "post" };
+        var updated = new Dictionary<string, object?>(StringComparer.Ordinal) { ["kind"] = "post" };
         foreach (var key in new[]
         {
             "id", "slug", "status", "title", "excerpt", "author", "heroImage",
