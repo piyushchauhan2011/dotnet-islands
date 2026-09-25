@@ -1,0 +1,134 @@
+@page "/search"
+@model SearchModel
+@{
+    var f = Model.Data.Filters;
+}
+<div class="search-page">
+    <div class="app-container">
+        <header class="search-page__header">
+            <p class="eyebrow">FIND YOUR STAY</p>
+            <h1 class="display-title">Hotels with a<br /><em>sense of place.</em></h1>
+        </header>
+        <partial name="_SearchForm" model="new SearchFormView(Model.Destinations, f, true)" />
+        <div class="search-page__layout">
+            <div data-island="SearchExperience"
+                 data-hydrate="load"
+                 data-props="@(PublicPageModel.IslandProps(new
+                 {
+                     filters = f,
+                     amenities = Model.Data.Amenities.Select(x => new { x.Id, x.Name })
+                 }))"></div>
+            <aside data-fallback-for="SearchExperience" class="card search-page__filters">
+                <div class="card-content">
+                    <h2>Filters</h2>
+                    <form action="/search" method="get" aria-label="Filter hotels">
+                        @if (!string.IsNullOrEmpty(f.Destination))
+                        {
+                            <input type="hidden" name="destination" value="@f.Destination" />
+                        }
+                        @if (!string.IsNullOrEmpty(f.CheckIn))
+                        {
+                            <input type="hidden" name="checkIn" value="@f.CheckIn" />
+                        }
+                        @if (!string.IsNullOrEmpty(f.CheckOut))
+                        {
+                            <input type="hidden" name="checkOut" value="@f.CheckOut" />
+                        }
+                        <input type="hidden" name="adults" value="@f.Adults" />
+                        <input type="hidden" name="children" value="@f.Children" />
+                        <label class="label" for="query-filter">Search by name</label>
+                        <input class="input" id="query-filter" name="query" value="@f.Query" />
+                        <label class="label" for="min-price-filter">Min price</label>
+                        <input class="input" id="min-price-filter" name="minPrice"
+                               type="number" min="0" value="@f.MinPrice" />
+                        <label class="label" for="max-price-filter">Max price</label>
+                        <input class="input" id="max-price-filter" name="maxPrice"
+                               type="number" min="0" value="@f.MaxPrice" />
+                        <label class="label" for="rating-filter">Minimum rating</label>
+                        <select id="rating-filter" name="rating">
+                            <option value="">Any rating</option>
+                            <option value="4.5" selected="@(f.Rating == 4.5)">4.5+</option>
+                            <option value="4.7" selected="@(f.Rating == 4.7)">4.7+</option>
+                        </select>
+                        <fieldset>
+                            <legend>Amenities</legend>
+                            @foreach (var amenity in Model.Data.Amenities)
+                            {
+                                var hasAmenity = f.Amenities.Contains(amenity.Id);
+                                <label class="checkbox"><input type="checkbox" name="amenities"
+                                    value="@amenity.Id"
+                                    checked="@hasAmenity" /> @amenity.Name</label>
+                            }
+                        </fieldset>
+                        <label class="checkbox"><input type="checkbox" name="offers" value="true"
+                            checked="@f.Offers" /> Offers available</label>
+                        <button type="submit" class="button is-primary">Apply filters</button>
+                    </form>
+                </div>
+            </aside>
+            <section aria-label="Hotel search results">
+                <div class="search-page__results-header">
+                    <p><strong>@Model.Data.Total</strong> stays found</p>
+                    <form class="search-page__sort" action="/search" method="get">
+                        @foreach (var item in Model.Request.Query.Where(
+                            x => x.Key != "sort" && x.Key != "page"))
+                        {
+                            foreach (var value in item.Value)
+                            {
+                                <input type="hidden" name="@item.Key" value="@value" />
+                            }
+                        }
+                        <label class="label" for="sort-hotels">Sort by</label>
+                        <div class="select">
+                            <select id="sort-hotels" name="sort">
+                                <option value="relevance"
+                                    selected="@(f.Sort == "relevance")">Recommended</option>
+                                <option value="price-asc"
+                                    selected="@(f.Sort == "price-asc")">Price: low to high</option>
+                                <option value="price-desc"
+                                    selected="@(f.Sort == "price-desc")">Price: high to low</option>
+                                <option value="rating"
+                                    selected="@(f.Sort == "rating")">Guest rating</option>
+                            </select>
+                        </div>
+                        <button class="button is-text" type="submit">Sort</button>
+                    </form>
+                </div>
+                @if (Model.Data.Results.Count == 0)
+                {
+                    <div class="notification is-secondary">
+                        <h2>No exact matches</h2>
+                        <p>Try widening the price range or removing an amenity. <a
+                            href="/search" class="search-page__clear-link">Clear all filters</a></p>
+                    </div>
+                }
+                else
+                {
+                    <div class="search-page__results">
+                        @foreach (var result in Model.Data.Results)
+                        {
+                            <partial name="_HotelCard" model="result.Hotel" />
+                        }
+                    </div>
+                }
+                @if (Model.Data.Pages > 1)
+                {
+                    <nav class="pagination search-page__pagination"
+                         aria-label="Search result pages">
+                        <ul class="pagination-list">
+                            @for (var index = 1; index <= Model.Data.Pages; index++)
+                            {
+                                var isCurrent = index == f.Page;
+                                <li>
+                                    <a class="pagination-link @(isCurrent ? "is-current" : "")"
+                                       aria-current="@(isCurrent ? "page" : null)"
+                                       href="@Model.PageLink(index)">@index</a>
+                                </li>
+                            }
+                        </ul>
+                    </nav>
+                }
+            </section>
+        </div>
+    </div>
+</div>

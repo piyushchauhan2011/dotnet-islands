@@ -1,0 +1,25 @@
+@model global::Hotel.Api.Data.Hotel
+@{
+    var price = PublicPageModel.Price(Model.PriceFrom, Model.Currency);
+    var hotelLink = PublicPageModel.HotelLink(Model);
+    var rating = Model.Rating.ToString("F1");
+}
+<article class="card hotel-card">
+    <a href="@hotelLink" class="hotel-card__image-link">
+        <span class="blur-image hotel-card__image-wrap">
+            <img class="blur-image__image hotel-card__image" src="@Model.HeroImage"
+                 alt="@Model.Name" width="560" height="380" loading="lazy" />
+        </span>
+        <span class="tag is-dark is-rounded hotel-card__rating">★ @rating</span>
+    </a>
+    <div class="card-content hotel-card__body">
+        <p class="hotel-card__location">Independent stay</p>
+        <h3 class="hotel-card__title"><a href="@hotelLink">@Model.Name</a></h3>
+        <p class="hotel-card__summary">@Model.Summary</p>
+    </div>
+    <footer class="hotel-card__footer">
+        <span class="hotel-card__price">From <strong>@price</strong> / night</span>
+        <a href="@hotelLink" class="button is-ghost button-icon"
+           aria-label="Explore @Model.Name">→</a>
+    </footer>
+</article>

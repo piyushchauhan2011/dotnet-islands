@@ -1,0 +1,53 @@
+@page "/destinations/{slug}"
+@model DestinationModel
+@{
+    var search = new SearchFormView(
+        [Model.Data.Destination],
+        new SearchFilters(
+            Model.Data.Destination.Slug,
+            null, null, null, 2, 0, null, null, null, [],
+            false, "relevance", 1));
+}
+<div class="destination-page">
+    <section class="destination-page__hero page-hero">
+        <img src="@Model.Data.Destination.HeroImage"
+             alt="@Model.Data.Destination.Name"
+             width="1280" height="720" />
+        <div class="app-container">
+            <p class="eyebrow eyebrow--light">
+                @Model.Data.Destination.Eyebrow · @Model.Data.Destination.Country
+            </p>
+            <h1 class="display-title">@Model.Data.Destination.Name</h1>
+            <p>@Model.Data.Destination.Summary</p>
+        </div>
+    </section>
+    <div class="app-container destination-page__search">
+        <partial name="_SearchForm" model="search" />
+    </div>
+    <section class="content-section">
+        <div class="app-container">
+            <p class="eyebrow">A CLOSER LOOK</p>
+            <h2 class="section-title">A place to stay awhile.</h2>
+            <partial name="_RichContent"
+                     model="new RichView(Model.Data.Destination.Content)" />
+        </div>
+    </section>
+    <section class="content-section">
+        <div class="app-container">
+            <div class="section-header">
+                <div>
+                    <p class="eyebrow">
+                        STAYS IN @Model.Data.Destination.Name.ToUpperInvariant()
+                    </p>
+                    <h2 class="section-title">Find your place here.</h2>
+                </div>
+            </div>
+            <div class="destination-page__hotel-grid home-page__hotel-grid">
+                @foreach (var hotel in Model.Data.Hotels)
+                {
+                    <partial name="_HotelCard" model="hotel" />
+                }
+            </div>
+        </div>
+    </section>
+</div>

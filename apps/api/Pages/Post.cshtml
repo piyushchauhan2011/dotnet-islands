@@ -1,0 +1,23 @@
+@page "/blog/{slug}"
+@model PostModel
+<article class="blog-page blog-page--detail">
+    <header class="app-container blog-page__post-header">
+        <p class="eyebrow">THE JOURNAL</p>
+        <h1 class="display-title">@Model.Data.Post.Title</h1>
+        <p>@Model.Data.Post.Excerpt</p>
+        <span>By @Model.Data.Post.Author</span>
+    </header>
+    <figure class="blog-page__hero">
+        <img src="@Model.Data.Post.HeroImage"
+             alt="Travel story setting"
+             width="1600" height="900"
+             fetchpriority="high" />
+    </figure>
+    <div class="app-container blog-page__content">
+        <partial name="_RichContent"
+                 model="new RichView(Model.Data.Post.Content, Model.Data.EmbeddedHotels)" />
+    </div>
+    <footer class="app-container blog-page__post-footer">
+        <a href="/blog" class="button is-text">← More stories</a>
+    </footer>
+</article>

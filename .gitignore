@@ -1,0 +1,24 @@
+node_modules/
+.nx/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+
+**/bin/
+**/obj/
+**/dist/
+**/.vite/
+**/coverage/
+storybook-static/
+playwright-report/
+test-results/
+.lighthouseci/
+apps/api/wwwroot/assets/
+
+# Persistent local data; generated responsive public images stay tracked.
+/data/
+apps/api/Data/media/
+apps/api/Data/keys/
+apps/api/wwwroot/media/

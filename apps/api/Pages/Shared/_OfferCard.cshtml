@@ -1,0 +1,21 @@
+@model HomeOffer
+@{
+    var offer = Model.Offer;
+    var hotelSlug = Uri.EscapeDataString(Model.HotelSlug);
+    var offerSlug = Uri.EscapeDataString(offer.Slug);
+    var discountLabel = offer.DiscountPercent is int discount
+        ? $"{discount}% value"
+        : "Seasonal offer";
+}
+<article class="card offer-card">
+    <span class="blur-image offer-card__image-wrap">
+        <img class="blur-image__image offer-card__image" src="@offer.Image"
+             alt="@offer.Title" width="240" height="180" loading="lazy" />
+    </span>
+    <div class="card-content offer-card__body">
+        <span class="tag is-secondary is-rounded">@discountLabel</span>
+        <h3>@offer.Title</h3><p>@offer.Summary</p>
+        <a class="button is-text offer-card__link"
+           href="/hotels/@hotelSlug/offers/@offerSlug">View offer →</a>
+    </div>
+</article>

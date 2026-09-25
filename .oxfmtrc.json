@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "semi": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "printWidth": 80,
+  "sortPackageJson": false,
+  "ignorePatterns": [
+    "pnpm-lock.yaml",
+    "**/dist/**",
+    "**/bin/**",
+    "**/obj/**",
+    "**/node_modules/**",
+    "apps/web/public/images/gen/**",
+    "apps/web/src/lib/image-manifest.ts",
+    "storybook-static/**",
+    "playwright-report/**",
+    "test-results/**"
+  ]
+}

@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hotel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hotel_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-hotel}
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: hotel-api:${RELEASE_VERSION:-local}
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hotel}:${POSTGRES_PASSWORD:-hotel_local_only}@postgres:5432/${POSTGRES_DB:-hotel}
+      SNAPSHOT_MODE: 'on'
+      SNAPSHOT_INTERNAL_TOKEN: ${SNAPSHOT_INTERNAL_TOKEN:-}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:5000}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      MEDIA_DIR: /data/media
+      ASSET_DIR: /data/assets
+      DATA_PROTECTION_KEYS_DIR: /data/keys
+    ports:
+      - '127.0.0.1:5000:8080'
+    volumes:
+      - media_data:/data/media
+      - asset_data:/data/assets
+      - protection_keys:/data/keys
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'curl', '--fail', '--silent', 'http://localhost:8080/health']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  snapshot-worker:
+    build:
+      context: .
+      dockerfile: apps/snapshot-worker/Dockerfile
+    image: hotel-snapshot-worker:${RELEASE_VERSION:-local}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hotel}:${POSTGRES_PASSWORD:-hotel_local_only}@postgres:5432/${POSTGRES_DB:-hotel}
+      SNAPSHOT_INTERNAL_TOKEN: ${SNAPSHOT_INTERNAL_TOKEN:-}
+      SNAPSHOT_API_ORIGIN: http://api:8080
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+    depends_on:
+      postgres:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  media_data:
+  asset_data:
+  protection_keys:

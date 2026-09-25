@@ -1,0 +1,147 @@
+@model RichView
+@using System.Text.Json
+@functions {
+    private static string Text(JsonElement node, string key)
+    {
+        return node.ValueKind == JsonValueKind.Object
+            && node.TryGetProperty(key, out var value)
+            && value.ValueKind == JsonValueKind.String
+                ? value.GetString() ?? ""
+                : "";
+    }
+
+    private static bool Array(JsonElement node, string key, out JsonElement value)
+    {
+        value = default;
+        return node.ValueKind == JsonValueKind.Object
+            && node.TryGetProperty(key, out value)
+            && value.ValueKind == JsonValueKind.Array;
+    }
+
+    // Stored editorial nodes are data, never trusted HTML, scriptable URLs, or arbitrary embeds.
+    private static string? Image(string src)
+    {
+        return src.StartsWith("/", StringComparison.Ordinal)
+            && !src.StartsWith("//", StringComparison.Ordinal)
+            && !src.Contains('\\')
+                ? src
+                : Uri.TryCreate(src, UriKind.Absolute, out var uri)
+                    && uri.Scheme == Uri.UriSchemeHttps
+                        ? src
+                        : null;
+    }
+}
+<div class="rich-content">
+@if (Model.Content.RootElement.ValueKind == JsonValueKind.Array)
+{
+    foreach (var node in Model.Content.RootElement.EnumerateArray())
+    {
+        var kind = Text(node, "type");
+        switch (kind)
+        {
+            case "heading":
+                var level = node.TryGetProperty("level", out var headingLevel)
+                    && headingLevel.TryGetInt32(out var n) ? n : 2;
+                if (level == 3)
+                {
+                    <h3>@Text(node, "text")</h3>
+                }
+                else if (level == 4)
+                {
+                    <h4>@Text(node, "text")</h4>
+                }
+                else
+                {
+                    <h2>@Text(node, "text")</h2>
+                }
+                break;
+            case "paragraph":
+                <p>@Text(node, "text")</p>
+                break;
+            case "blockquote":
+                <blockquote>@Text(node, "text")</blockquote>
+                break;
+            case "bulletList":
+            case "orderedList":
+                if (Array(node, "items", out var items))
+                {
+                    if (kind == "bulletList")
+                    {
+                        <ul>
+                            @foreach (var item in items.EnumerateArray())
+                            {
+                                var itemText = item.ValueKind == JsonValueKind.String
+                                    ? item.GetString() : "";
+                                <li>@itemText</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <ol>
+                            @foreach (var item in items.EnumerateArray())
+                            {
+                                var itemText = item.ValueKind == JsonValueKind.String
+                                    ? item.GetString() : "";
+                                <li>@itemText</li>
+                            }
+                        </ol>
+                    }
+                }
+                break;
+            case "image":
+                var src = Image(Text(node, "src"));
+                if (src is not null)
+                {
+                    <figure>
+                        <img src="@src" alt="@Text(node, "alt")"
+                             width="1280" height="720" loading="lazy" />
+                    </figure>
+                }
+                break;
+            case "table":
+                if (Array(node, "rows", out var rows) && rows.GetArrayLength() > 0)
+                {
+                    <div class="table-container">
+                        <table class="table is-bordered">
+                            <thead>
+                                <tr>
+                                    @foreach (var cell in rows[0].EnumerateArray())
+                                    {
+                                        var cellText = cell.ValueKind == JsonValueKind.String
+                                            ? cell.GetString() : "";
+                                        <th scope="col">@cellText</th>
+                                    }
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in rows.EnumerateArray().Skip(1))
+                                {
+                                    <tr>
+                                        @foreach (var cell in row.EnumerateArray())
+                                        {
+                                            var cellText = cell.ValueKind == JsonValueKind.String
+                                                ? cell.GetString() : "";
+                                            <td>@cellText</td>
+                                        }
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                break;
+            case "hotelEmbed":
+                if (Model.Hotels is not null
+                    && Model.Hotels.TryGetValue(Text(node, "entityId"), out var hotel))
+                {
+                    <aside class="rich-content__hotel">
+                        <span class="tag is-primary">Selected stay</span><partial name="_HotelCard"
+                            model="hotel" />
+                    </aside>
+                }
+                break;
+        }
+    }
+}
+</div>

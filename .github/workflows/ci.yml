@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: hotel
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: hotel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U hotel -d hotel"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      DATABASE_URL: postgresql://hotel:ci-only-password@localhost:5432/hotel
+      TEST_DATABASE_URL: postgresql://hotel:ci-only-password@localhost:5432/hotel_test
+      MEDIA_DIR: ${{ github.workspace }}/data/media
+      DATA_PROTECTION_KEYS_DIR: ${{ github.workspace }}/data/keys
+      SNAPSHOT_API_ORIGIN: http://127.0.0.1:5000
+      SNAPSHOT_MODE: 'on'
+      PUBLIC_ORIGIN: http://127.0.0.1:5000
+      ASPNETCORE_ENVIRONMENT: Development
+      ADMIN_EMAIL: admin@example.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26.10.0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.6.0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.401
+      - uses: browser-actions/setup-chrome@v1
+      - name: Set isolated runtime credentials
+        run: |
+          echo "SNAPSHOT_INTERNAL_TOKEN=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "ADMIN_PASSWORD=$(openssl rand -hex 24)" >> "$GITHUB_ENV"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm nx show projects
+      - run: pnpm build
+      - run: docker compose build api snapshot-worker
+      - name: Provision isolated test database
+        run: PGPASSWORD=ci-only-password psql -h localhost -U hotel -d hotel -c 'CREATE DATABASE hotel_test;'
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - name: Start .NET gateway
+        run: |
+          dotnet run --project apps/api/api.csproj --no-launch-profile -- --urls http://127.0.0.1:5000 > /tmp/hotel-api.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:5000/health > /dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat /tmp/hotel-api.log
+          exit 1
+      - run: pnpm snapshots:all
+      - run: pnpm lint && pnpm check && pnpm typecheck && pnpm test
+      - run: pnpm test:e2e
+      - run: pnpm lighthouse

@@ -1,0 +1,39 @@
+root = true
+
+[*.cs]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+csharp_new_line_before_open_brace = all
+csharp_preserve_single_line_blocks = false
+csharp_preserve_single_line_statements = false
+
+dotnet_diagnostic.IDE0055.severity = error
+dotnet_diagnostic.CA1502.severity = error
+dotnet_diagnostic.CA1505.severity = error
+dotnet_diagnostic.CA1506.severity = error
+dotnet_diagnostic.MA0051.severity = error
+dotnet_diagnostic.MA0009.severity = error
+MA0051.maximum_lines_per_method = 60
+MA0051.maximum_statements_per_method = 40
+
+# Existing grouped entity/page files and ASP.NET Core async/string idioms are intentional.
+dotnet_diagnostic.MA0048.severity = none
+dotnet_diagnostic.MA0004.severity = none
+dotnet_diagnostic.MA0006.severity = none
+
+[*.cshtml]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+max_line_length = 100
+
+[apps/api/Migrations/*.cs]
+generated_code = true
+dotnet_diagnostic.MA0051.severity = none

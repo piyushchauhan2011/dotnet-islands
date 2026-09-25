@@ -1,0 +1,14 @@
+@model Destination
+<article class="card destination-card">
+    <a class="destination-card__link" href="@PublicPageModel.DestinationLink(Model)">
+        <span class="blur-image destination-card__image-wrap">
+            <img class="blur-image__image destination-card__image"
+                 src="@Model.HeroImage" alt="@Model.Name landscape"
+                 width="560" height="680" loading="lazy" />
+        </span>
+        <div class="destination-card__content">
+            <span class="destination-card__country">@Model.Country</span><h3>@Model.Name</h3>
+            <p>@Model.Summary</p><b>Explore →</b>
+        </div>
+    </a>
+</article>

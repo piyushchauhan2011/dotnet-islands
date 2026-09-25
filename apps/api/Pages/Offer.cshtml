@@ -1,0 +1,132 @@
+@page "/hotels/{slug}/offers/{offerSlug}"
+@model OfferModel
+@using System.Globalization
+@{
+    var offer = Model.Data.Offer;
+    var hotel = Model.Data.Hotel;
+    var destination = Model.Data.Destination;
+    var inquiryUrl = $"/inquire?hotel={Uri.EscapeDataString(hotel.Id)}"
+        + $"&offer={Uri.EscapeDataString(offer.Id)}";
+    string FormatDate(string value) =>
+        DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out var date)
+            ? date.ToString("MMMM d, yyyy", CultureInfo.GetCultureInfo("en-US"))
+            : value;
+    var validity = (offer.ValidFrom, offer.ValidTo) switch
+    {
+        ({ } from, { } to) => $"Valid for stays from {FormatDate(from)} to {FormatDate(to)}.",
+        ({ } from, null) => $"Valid for stays from {FormatDate(from)}.",
+        (null, { } to) => $"Valid for stays until {FormatDate(to)}.",
+        _ => "Available on selected dates, subject to availability."
+    };
+}
+<div class="offer-page">
+    <div class="app-container offer-page__breadcrumbs">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li>
+                    <a href="@PublicPageModel.DestinationLink(destination)">@destination.Name</a>
+                </li>
+                <li><a href="@PublicPageModel.HotelLink(hotel)">@hotel.Name</a></li>
+                <li class="is-active" aria-current="page">@offer.Title</li>
+            </ul>
+        </nav>
+    </div>
+
+    <div class="app-container offer-page__hero">
+        <div class="offer-page__image">
+            <img src="@offer.Image" alt="@offer.Title at @hotel.Name"
+                 width="960" height="640" fetchpriority="high" />
+            <div class="offer-page__image-caption">An exclusive offer from @hotel.Name</div>
+        </div>
+        <div class="offer-page__hero-copy">
+            <p class="eyebrow">EXCLUSIVE HOTEL OFFER</p>
+            <span class="tag is-secondary is-rounded">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0l-8.18-8.18A2 2 0 0 1
+                        1.83 11V4a2 2 0 0 1 2-2h7a2 2 0 0 1 1.41.59l8.35 8a2 2 0 0 1 0
+                        2.82Z" />
+                    <circle cx="7.5" cy="7.5" r=".5" />
+                </svg>
+                @(offer.DiscountPercent is > 0
+                    ? $"{offer.DiscountPercent}% value"
+                    : "Seasonal value")
+            </span>
+            <h1 class="display-title">@offer.Title</h1>
+            <p>@offer.Summary</p>
+            <div class="offer-page__dates">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <rect x="3" y="5" width="18" height="16" rx="2" />
+                    <path d="M16 3v4M8 3v4M3 10h18" />
+                </svg>
+                <div>
+                    <strong>Offer dates</strong><span>@validity</span>
+                </div>
+            </div>
+            <a href="@inquiryUrl"
+               class="button is-primary is-large offer-page__request">Request this offer <span
+                   aria-hidden="true">→</span></a>
+            <small>No payment is taken. The hotel will confirm availability.</small>
+        </div>
+    </div>
+
+    <section class="content-section">
+        <div class="app-container offer-page__details">
+            <div>
+                <p class="eyebrow">OFFER DETAILS</p>
+                <h2 class="section-title">Make a little more of your stay</h2>
+                <div class="offer-page__benefits">
+                    <div class="offer-page__benefit">
+                        <span aria-hidden="true">✓</span><span>@(offer.DiscountPercent is > 0
+                            ? $"{offer.DiscountPercent}% value applied to this special stay."
+                            : "A special seasonal value created for this stay.")</span>
+                    </div>
+                    <div class="offer-page__benefit">
+                        <span aria-hidden="true">✓</span><span>@offer.Summary</span>
+                    </div>
+                    <div class="offer-page__benefit">
+                        <span aria-hidden="true">✓</span><span>@(
+                            "Personal assistance with dates, room selection, "
+                            + "and your request.")</span>
+                    </div>
+                    <div class="offer-page__benefit">
+                        <span aria-hidden="true">✓</span><span>@(
+                            "No online payment required before the hotel "
+                            + "confirms your stay.")</span>
+                    </div>
+                </div>
+                <div class="offer-page__terms">
+                    <h2>Terms and conditions</h2>
+                    <p>@offer.Terms</p>
+                    <p>@validity</p>
+                </div>
+            </div>
+            <aside class="card offer-page__aside">
+                <header class="offer-page__aside-header">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                         stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+                        <path d="m9 12 2 2 4-4" />
+                    </svg>
+                    <h2 class="offer-page__aside-title">Plan it personally</h2>
+                </header>
+                <div class="card-content">
+                    <p>@(
+                        "Tell us your preferred dates and party size. The team will confirm "
+                        + "the offer, room options, and final rate directly.")</p>
+                    <a href="@inquiryUrl"
+                       class="button is-primary is-fullwidth">Check availability <span
+                           aria-hidden="true">→</span></a>
+                    <a href="@PublicPageModel.HotelLink(hotel)"
+                       class="button is-ghost is-fullwidth">Return to @hotel.Name</a>
+                </div>
+            </aside>
+        </div>
+    </section>
+</div>

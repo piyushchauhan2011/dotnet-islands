@@ -1,0 +1,125 @@
+@using Hotel.Api.Pages
+@inject global::Hotel.Api.Assets.IAssetManifest Assets
+@inject IConfiguration Configuration
+@{
+    var currentPage = ViewContext.ViewData.Model as PublicPageModel;
+    var admin = ViewContext.ViewData.Model is AdminPageModel;
+    var origin = Configuration["PUBLIC_ORIGIN"]?.TrimEnd('/')
+        ?? $"{Context.Request.Scheme}://{Context.Request.Host}";
+    var canonical = currentPage is null ? null : origin + currentPage.CanonicalPath;
+    var overlay = currentPage?.HeaderOverlay == true;
+    var searchButtonClass = overlay ? "site-header__search-button--overlay" : "is-primary";
+    var mainClass = overlay ? "app-main--header-overlay" : "";
+    var year = DateTime.UtcNow.Year;
+    var footerSummary = "Independent hotels and slower journeys, selected with care.";
+    var links = new[]
+    {
+        new { label = "Destinations", href = "/destinations" },
+        new { label = "Hotels", href = "/search" },
+        new { label = "Journal", href = "/blog" }
+    };
+}
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>@(admin ? "Admin studio — Elsewhere" : currentPage!.SeoTitle)</title>
+    @if (!admin)
+    {
+        <meta name="description" content="@currentPage!.SeoDescription" />
+        <link rel="canonical" href="@canonical" />
+    }
+    <meta name="robots" content="@(admin ? "noindex,nofollow" : currentPage!.Robots)" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    @foreach (var stylesheet in admin ? Assets.AdminStyles : Assets.RuntimeStyles)
+    {
+        <link rel="stylesheet" href="@stylesheet" />
+    }
+    @if (currentPage?.JsonLd is not null)
+    {
+        <script type="application/ld+json">@Html.Raw(currentPage.JsonLd)</script>
+    }
+</head>
+<body>
+    <div class="site-header__sentinel" aria-hidden="true"></div>
+    <header data-overlay="@(overlay ? "true" : "false")"
+            class="site-header @(overlay ? "site-header--overlay" : "site-header--solid")">
+        @if (overlay)
+        {
+            <div class="site-header__scrim header-scrim" aria-hidden="true"></div>
+        }
+        <a class="site-header__skip-link" href="#main">Skip to content</a>
+        <div class="app-container site-header__inner">
+            <a href="/" class="site-header__brand-link" aria-label="Elsewhere — home">
+                <span class="brand @(overlay ? "brand--light" : "")">
+                    <span class="brand__name">Elsewhere</span><small
+                        class="brand__tagline">STAYS &amp; STORIES</small>
+                </span>
+            </a>
+            <nav class="site-header__nav" aria-label="Primary navigation">
+                @foreach (var link in links)
+                {
+                    <a class="site-header__nav-link" href="@link.href">@link.label</a>
+                }
+            </nav>
+            <div class="site-header__actions">
+                <a class="button site-header__search-button @searchButtonClass"
+                   href="/search">Find a stay</a>
+            </div>
+            @if (!admin)
+            {
+                <div data-island="MobileNav" data-hydrate="load"
+                     data-props="@(PublicPageModel.IslandProps(new { links }))"></div>
+            }
+            <nav data-fallback-for="MobileNav" aria-label="Mobile navigation">
+                <details>
+                    <summary>Menu</summary>
+                    @foreach (var link in links)
+                    {
+                        <a href="@link.href">@link.label</a>
+                    }
+                </details>
+            </nav>
+        </div>
+    </header>
+    <main id="main" class="app-main @mainClass">@RenderBody()</main>
+    <footer class="site-footer">
+        <div class="app-container">
+            <div class="site-footer__grid">
+                <div>
+                    <a href="/" aria-label="Elsewhere — home">
+                        <span class="brand brand--light">
+                            <span class="brand__name">Elsewhere</span><small
+                                class="brand__tagline">STAYS &amp; STORIES</small>
+                        </span>
+                    </a>
+                    <p class="site-footer__summary">@footerSummary</p>
+                </div>
+                <div class="site-footer__links">
+                    <h2>Explore</h2>
+                    <a href="/destinations">Destinations</a>
+                    <a href="/search">Hotels</a>
+                    <a href="/blog">Journal</a>
+                </div>
+                <div class="site-footer__links">
+                    <h2>For partners</h2>
+                    <a href="/admin/login">Hotel &amp; editorial admin</a>
+                    <a href="mailto:hello@example.com">hello@example.com</a>
+                </div>
+            </div>
+            <div class="site-footer__legal">
+                <span>© @year Elsewhere</span><span>Made for thoughtful travel.</span>
+            </div>
+        </div>
+    </footer>
+    @if (admin)
+    {
+        <script type="module" src="@Assets.AdminScript"></script>
+    }
+    else
+    {
+        <script type="module" src="@Assets.RuntimeScript"></script>
+    }
+</body>
+</html>

@@ -1,0 +1,10 @@
+packages:
+  - 'tests/e2e'
+
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  lightningcss: true
+  nx: true
+  sharp: true
+  unrs-resolver: true

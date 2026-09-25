@@ -1,0 +1,30 @@
+@page "/blog"
+@model BlogModel
+<div class="app-container blog-page blog-page--index">
+    <header class="blog-page__header">
+        <p class="eyebrow">THE JOURNAL</p>
+        <h1 class="display-title">Stories for <br /><em>going well.</em></h1>
+        <p>Field notes, neighborhood rituals, and the stays that give a journey its shape.</p>
+    </header>
+    <div class="blog-page__grid">
+        @for (var i = 0; i < Model.Posts.Count; i++)
+        {
+            var post = Model.Posts[i];
+            <article class="blog-page__card @(i == 0 ? "blog-page__card--featured" : "")">
+                <a href="@PublicPageModel.BlogLink(post)">
+                    <img src="@post.HeroImage"
+                         alt="Travel journal destination"
+                         width="960" height="600"
+                         loading="@(i == 0 ? "eager" : "lazy")"
+                         fetchpriority="@(i == 0 ? "high" : "auto")" />
+                    <div class="blog-page__card-content">
+                        <span class="tag is-secondary">FIELD NOTES</span>
+                        <h2>@post.Title</h2>
+                        <p>@post.Excerpt</p>
+                        <b>Read story <span aria-hidden="true">→</span></b>
+                    </div>
+                </a>
+            </article>
+        }
+    </div>
+</div>

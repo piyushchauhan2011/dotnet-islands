@@ -1,0 +1,23 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "e2e",
+  "root": "tests/e2e",
+  "targets": {
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "playwright test --config tests/e2e/playwright.config.ts",
+        "cwd": "."
+      },
+      "cache": false
+    },
+    "lighthouse": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "lhci autorun",
+        "cwd": "."
+      },
+      "cache": false
+    }
+  }
+}

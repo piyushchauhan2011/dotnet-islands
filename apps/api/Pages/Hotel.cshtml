@@ -1,0 +1,427 @@
+@page "/hotels/{slug}"
+@model HotelModel
+@using System.Globalization
+@{
+    var stay = Model.Data;
+    var hotel = stay.Hotel;
+    var destination = stay.Destination;
+    var displayedReviewCount = Math.Max(hotel.ReviewCount, stay.Reviews.Count);
+}
+<div class="hotel-page">
+    <div class="app-container hotel-page__breadcrumbs">
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li>
+                    <a href="@PublicPageModel.DestinationLink(destination)">@destination.Name</a>
+                </li>
+                <li class="is-active" aria-current="page">@hotel.Name</li>
+            </ul>
+        </nav>
+    </div>
+    <header class="app-container hotel-page__header">
+        <div>
+            <p class="eyebrow">@hotel.PropertyType · @destination.Country</p>
+            <h1 class="display-title">@hotel.Name</h1>
+            <p class="hotel-page__summary">@hotel.Summary</p>
+            <p class="hotel-page__rating">@(hotel.StarRating is null
+                ? "" : hotel.StarRating + "-star · ")@hotel.Rating.ToString("F1") / 5
+                @if (displayedReviewCount > 0)
+                {
+                    <span> · @displayedReviewCount reviews</span>
+                }
+            </p>
+        </div>
+        <div class="hotel-page__price">
+            <span>Rooms from</span>
+            <strong>@PublicPageModel.Price(hotel.PriceFrom, hotel.Currency)</strong>
+            <small>per night</small>
+        </div>
+    </header>
+    <nav class="hotel-page__nav-wrap" aria-label="Hotel sections">
+        <div class="app-container hotel-page__nav">
+            <a href="#overview">Overview</a>
+            <a href="#rooms">Rooms</a>
+            <a href="#facilities">Facilities</a>
+            <a href="#location">Location</a>
+            <a href="#policies">Policies</a>
+            <a href="#reviews">Reviews</a>
+        </div>
+    </nav>
+    <div class="app-container hotel-page__gallery" id="gallery">
+        <div data-island="Gallery" data-hydrate="visible"
+             data-props="@(PublicPageModel.IslandProps(new
+             {
+                 name = hotel.Name,
+                 items = stay.Gallery.Select(x => new
+                 {
+                     x.Id, x.Src, x.Alt, x.Caption, x.Category, x.RoomId
+                 })
+             }))"></div>
+        <div data-fallback-for="Gallery" class="gallery-grid">
+            @for (var i = 0; i < Math.Min(5, stay.Gallery.Count); i++)
+            {
+                var photo = stay.Gallery[i];
+                <a class="gallery-grid__item @(i == 0
+                       ? "gallery-grid__item--primary" : "") @(i == 3
+                       ? "gallery-grid__item--fourth" : "") @(i == 4
+                       ? "gallery-grid__item--fifth" : "")"
+                   href="@photo.Src">
+                    <span class="gallery-grid__image-wrap">
+                        <img class="gallery-grid__image" src="@photo.Src" alt="@photo.Alt"
+                             loading="@(i == 0 ? "eager" : "lazy")" />
+                    </span>
+                    @if (i > 0)
+                    {
+                        <span class="gallery-grid__category">@photo.Category</span>
+                    }
+                </a>
+            }
+        </div>
+    </div>
+    @if (stay.Highlights.Count > 0)
+    {
+        <section class="content-section hotel-highlights">
+            <div class="app-container">
+                <p class="eyebrow">WHY STAY HERE</p>
+                <h2 class="section-title">Good reasons to settle in</h2>
+                <div class="hotel-highlights__grid">
+                    @foreach (var highlight in stay.Highlights)
+                    {
+                        <article class="card hotel-highlights__card">
+                            <div class="card-content">
+                                <div>
+                                    <h3>@highlight.Title</h3>
+                                    <p>@highlight.Summary</p>
+                                </div>
+                            </div>
+                        </article>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+    <section id="overview" class="content-section hotel-page__anchor">
+        <div class="app-container hotel-page__overview">
+            <div>
+                <p class="eyebrow">THE STAY</p>
+                <h2 class="section-title">A place to settle in.</h2>
+                <p>@hotel.Description</p>
+            </div>
+            <article class="card hotel-page__inquiry-card">
+                <header class="hotel-page__inquiry-card-header">
+                    <p class="eyebrow eyebrow--light">PLAN YOUR STAY</p>
+                    <h3 class="hotel-page__inquiry-card-title">Interested in @hotel.Name?</h3>
+                </header>
+                <div class="card-content hotel-page__inquiry-card-body">
+                    Share your dates and we’ll pass your request to the hotel team.
+                </div>
+                <footer class="hotel-page__inquiry-card-footer">
+                    <a class="button is-secondary"
+                       href="/inquire?hotel=@Uri.EscapeDataString(hotel.Id)">Make an inquiry →</a>
+                    <small>No payment is taken. Availability will be confirmed personally.</small>
+                </footer>
+            </article>
+        </div>
+    </section>
+    @if (stay.Rooms.Count > 0)
+    {
+        <section id="rooms" class="content-section hotel-page__anchor hotel-page__rooms">
+            <div class="app-container">
+                <p class="eyebrow">ROOMS &amp; SUITES</p>
+                <h2 class="section-title">Space to call your own</h2>
+                <div class="hotel-page__room-list">
+                    @foreach (var room in stay.Rooms)
+                    {
+                        var roomAmenities = stay.RoomAmenities
+                            .Where(x => x.RoomId == room.Id).ToList();
+                        <article class="card hotel-room">
+                            <div class="hotel-room__image-wrap">
+                                <img class="hotel-room__image" src="@room.Image"
+                                     alt="@room.Name at @hotel.Name" width="560" height="440"
+                                     loading="lazy" />
+                            </div>
+                            <div class="hotel-room__content">
+                                <header class="hotel-room__header">
+                                    <h3 class="hotel-room__title">@room.Name</h3>
+                                    <p>@room.Summary</p>
+                                </header>
+                                <div class="card-content hotel-room__body">
+                                    <div class="hotel-room__facts">
+                                        <span>Up to @room.MaxGuests guests</span>
+                                        @if (room.SizeSqm is not null)
+                                        {
+                                            <span>@room.SizeSqm m²</span>
+                                        }
+                                        <span>@room.Bed</span>
+                                    </div>
+                                    @if (roomAmenities.Count > 0)
+                                    {
+                                        <div class="hotel-room__amenities">
+                                            <strong>Room amenities</strong>
+                                            <div>
+                                                @foreach (var amenity in roomAmenities)
+                                                {
+                                                    <span>@amenity.Name</span>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (stay.Gallery.Any(photo => photo.RoomId == room.Id))
+                                    {
+                                        <a class="button is-light hotel-room__gallery"
+                                           href="#gallery">View hotel gallery ↑</a>
+                                    }
+                                </div>
+                                <footer class="hotel-room__footer">
+                                    <span>From <strong>@(PublicPageModel.Price(
+                                        room.PriceFrom, hotel.Currency))</strong> / night</span>
+                                    <a class="button is-primary is-outlined hotel-room__inquire"
+                                       href="/inquire?hotel=@(Uri.EscapeDataString(
+                                           hotel.Id))&amp;room=@(Uri.EscapeDataString(
+                                           room.Id))">Inquire →</a>
+                                </footer>
+                            </div>
+                        </article>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+    @if (stay.Amenities.Count > 0 || stay.Facts.Count > 0)
+    {
+        <section id="facilities" class="content-section hotel-page__anchor hotel-facilities">
+            <div class="app-container">
+                <p class="eyebrow">FACILITIES &amp; FACTS</p>
+                <h2 class="section-title">Everything you need, clearly laid out</h2>
+                @if (!string.IsNullOrWhiteSpace(hotel.Description))
+                {
+                    <div class="hotel-facilities__about">
+                        <h3>About this stay</h3>
+                        <p>@hotel.Description</p>
+                    </div>
+                }
+                @if (stay.Amenities.Count > 0)
+                {
+                    <div class="hotel-facilities__groups">
+                        @foreach (var category in stay.Amenities.GroupBy(x => x.Category))
+                        {
+                            <div>
+                                <h3>@category.Key</h3>
+                                <ul>
+                                    @foreach (var amenity in category)
+                                    {
+                                        <li><span>@amenity.Name</span></li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+                    </div>
+                }
+                @if (stay.Facts.Count > 0)
+                {
+                    <dl class="hotel-facilities__facts">
+                        @foreach (var fact in stay.Facts)
+                        {
+                            <div><dt>@fact.Label</dt><dd>@fact.Value</dd></div>
+                        }
+                    </dl>
+                }
+            </div>
+        </section>
+    }
+    <section id="location" class="content-section hotel-page__anchor hotel-location">
+        <div class="app-container hotel-location__layout">
+            <div>
+                <p class="eyebrow">LOCATION</p>
+                <h2 class="section-title">Step outside and explore</h2>
+                <p class="hotel-location__summary">@destination.Summary</p>
+                <p class="hotel-location__address"
+                   >@hotel.Address, @destination.Name, @destination.Country</p>
+                @if (hotel.Latitude is not null && hotel.Longitude is not null)
+                {
+                    <a class="hotel-location__map-link"
+                       href="https://www.google.com/maps?q=@(hotel.Latitude.Value.ToString(
+                           CultureInfo.InvariantCulture)),@(hotel.Longitude.Value.ToString(
+                           CultureInfo.InvariantCulture))"
+                       target="_blank" rel="noopener noreferrer">View on map ↗</a>
+                }
+            </div>
+            @if (stay.NearbyPlaces.Count > 0)
+            {
+                <div class="hotel-location__places">
+                    @foreach (var category in stay.NearbyPlaces.GroupBy(x => x.Category))
+                    {
+                        <article class="card hotel-location__card">
+                            <div class="card-content">
+                                <h3>@category.Key</h3>
+                                <ul>
+                                    @foreach (var place in category)
+                                    {
+                                        <li>
+                                            <span>@place.Name</span>
+                                            <span>@(place.DistanceMeters < 1000
+                                                ? $"{place.DistanceMeters} m"
+                                                : $"{place.DistanceMeters / 1000.0:F1} km")</span>
+                                        </li>
+                                    }
+                                </ul>
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+    @if (stay.Policies.Count > 0 || stay.Faqs.Count > 0)
+    {
+        <section id="policies" class="content-section hotel-page__anchor hotel-policies">
+            <div class="app-container">
+                <p class="eyebrow">POLICIES &amp; FAQ</p>
+                <h2 class="section-title">The useful details</h2>
+                <div class="hotel-policies__layout">
+                    @if (stay.Policies.Count > 0)
+                    {
+                        <div class="hotel-policies__column">
+                            <h3>Policies</h3>
+                            <div class="hotel-policies__cards">
+                                @foreach (var category in stay.Policies.GroupBy(x => x.Category))
+                                {
+                                    <article class="card hotel-policies__card">
+                                        <div class="card-content">
+                                            <h4>@category.Key</h4>
+                                            <ul>
+                                                @foreach (var policy in category)
+                                                {
+                                                    <li>
+                                                        <strong>@policy.Title</strong>
+                                                        <p>@policy.Description</p>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </article>
+                                }
+                            </div>
+                        </div>
+                    }
+                    @if (stay.Faqs.Count > 0)
+                    {
+                        <div class="hotel-policies__column">
+                            <h3>Frequently asked questions</h3>
+                            <div class="hotel-policies__faqs">
+                                @foreach (var faq in stay.Faqs)
+                                {
+                                    <div class="hotel-policies__faq">
+                                        <details>
+                                            <summary>@faq.Question</summary>
+                                            <p class="hotel-policies__answer">@faq.Answer</p>
+                                        </details>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+    @if (stay.ReviewScores.Count > 0 || stay.Reviews.Count > 0 || hotel.ReviewCount > 0)
+    {
+        <section id="reviews" class="content-section hotel-page__anchor hotel-reviews">
+            <div class="app-container">
+                <p class="eyebrow">GUEST IMPRESSIONS</p>
+                <h2 class="section-title">What stays with people</h2>
+                <div class="hotel-reviews__layout">
+                    <div class="hotel-reviews__summary">
+                        <div>
+                            <div class="hotel-reviews__rating">
+                                <strong>@hotel.Rating.ToString("F1")</strong><span>/ 5</span>
+                            </div>
+                            <p>@(displayedReviewCount > 0
+                                ? $"{displayedReviewCount} reviews" : "No reviews yet")</p>
+                        </div>
+                        @if (stay.ReviewScores.Count > 0)
+                        {
+                            <div class="hotel-reviews__scores" aria-label="Review category scores">
+                                @foreach (var score in stay.ReviewScores)
+                                {
+                                    <div>
+                                        <div class="hotel-reviews__score-label">
+                                            <span>@score.Label</span>
+                                            <span>@score.Score.ToString("F1") / 5</span>
+                                        </div>
+                                        <div class="hotel-reviews__meter" role="meter"
+                                             aria-label="@score.Label: @(score.Score.ToString(
+                                                 "F1")) out of 5"
+                                             aria-valuemin="0" aria-valuemax="5"
+                                             aria-valuenow="@score.Score">
+                                            <div style="width: @(Math.Clamp(
+                                                score.Score / 5 * 100, 0, 100
+                                            ).ToString("F0", CultureInfo.InvariantCulture))%"></div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                    @if (stay.Reviews.Count > 0)
+                    {
+                        <div class="hotel-reviews__grid">
+                            @foreach (var review in stay.Reviews.Take(3))
+                            {
+                                var reviewedRoom = stay.Rooms.FirstOrDefault(
+                                    room => room.Id == review.RoomId);
+                                <article class="card hotel-reviews__card">
+                                    <div class="card-content">
+                                        <div class="hotel-reviews__card-meta">
+                                            <span aria-label="@(review.Rating.ToString(
+                                                "F1")) out of 5 stars">★ @(review.Rating.ToString(
+                                                "F1"))</span>
+                                            <time datetime="@review.ReviewedAt"
+                                                  >@review.ReviewedAt</time>
+                                        </div>
+                                        <h3>@review.Title</h3>
+                                        <p>@review.Body</p>
+                                        <div class="hotel-reviews__guest">
+                                            <p>@review.GuestName · @review.GuestCountry</p>
+                                            <p>@($"{review.TravelerType} · {review.Nights} "
+                                                + (review.Nights == 1 ? "night" : "nights")
+                                                + $" · Stayed {review.StayedAt}")</p>
+                                            @if (reviewedRoom is not null)
+                                            {
+                                                <p>Room: @reviewedRoom.Name</p>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(review.Response))
+                                        {
+                                            <div class="hotel-reviews__response">
+                                                <strong>Property response</strong>
+                                                <p>@review.Response</p>
+                                            </div>
+                                        }
+                                    </div>
+                                </article>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </section>
+    }
+    @if (stay.Offers.Count > 0)
+    {
+        <section class="content-section hotel-page__offers">
+            <div class="app-container">
+                <p class="eyebrow">OFFERS</p>
+                <h2 class="section-title">A little more from your stay</h2>
+                <div>
+                    @foreach (var offer in stay.Offers)
+                    {
+                        <partial name="_OfferCard" model="new HomeOffer(offer, hotel.Slug)" />
+                    }
+                </div>
+            </div>
+        </section>
+    }
+</div>

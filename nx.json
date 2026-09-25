@@ -1,0 +1,39 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "plugins": ["@nx/dotnet"],
+  "namedInputs": {
+    "default": [
+      "{projectRoot}/**/*",
+      "!{projectRoot}/dist/**/*",
+      "!{projectRoot}/bin/**/*",
+      "!{projectRoot}/obj/**/*",
+      "!{projectRoot}/storybook-static/**/*",
+      "sharedGlobals"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/global.json",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/pnpm-lock.yaml",
+      "{workspaceRoot}/nx.json"
+    ]
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "cache": true
+    },
+    "publish": {
+      "dependsOn": ["assets-build"],
+      "cache": true
+    },
+    "serve": {
+      "cache": false
+    },
+    "e2e": {
+      "cache": false
+    },
+    "test": {
+      "cache": false
+    }
+  }
+}
