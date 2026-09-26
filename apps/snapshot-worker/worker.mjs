@@ -96,18 +96,6 @@ async function render(job) {
         }
         for (const node of adjacent) node.before(document.createComment(''))
       }
-      // Store one representation of each progressive island. The Razor fallback
-      // serves no-JS visitors and crawlers; the client mounts into the empty marker.
-      for (const island of root.querySelectorAll('[data-island]')) {
-        const fallback = [...(island.parentElement?.children ?? [])].find(
-          child => child !== island && child.getAttribute('data-fallback-for') === island.getAttribute('data-island'))
-        if (fallback) island.replaceChildren()
-      }
-      root.classList.remove('js-enabled')
-      for (const fallback of root.querySelectorAll('[data-fallback-for]')) {
-        fallback.removeAttribute('hidden')
-        fallback.style.removeProperty('display')
-      }
       return { html: '<!doctype html>\n' + root.outerHTML, canonical, h1,
         islandCount: islands.length, unrendered: islands.filter(node => !node.firstElementChild).length,
         executableScripts, hasPrivateForm: Boolean(csrf), expectedRuntime }

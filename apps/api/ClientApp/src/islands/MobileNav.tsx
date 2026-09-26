@@ -53,8 +53,8 @@ export default function MobileNav({
       >
         <Menu aria-hidden="true" />
       </button>
-      <Suspense fallback={null}>
-        {openedOnce && (
+      {openedOnce && (
+        <Suspense fallback={null}>
           <IslandDialog
             open={open}
             onOpenChange={setOpen}
@@ -123,8 +123,8 @@ export default function MobileNav({
               </div>
             </div>
           </IslandDialog>
-        )}
-      </Suspense>
+        </Suspense>
+      )}
     </>
   )
 }

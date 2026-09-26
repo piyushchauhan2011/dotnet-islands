@@ -20,6 +20,7 @@ internal static class StartupServices
         builder.Services.AddRazorPages();
         builder.Services.AddControllers();
         builder.Services.AddSingleton<IAssetManifest, AssetManifest>();
+        builder.Services.AddSingleton<StaticImageVariants>();
         builder.Services.AddResponseCompression(options =>
         {
             options.EnableForHttps = true;
@@ -76,6 +77,8 @@ internal static class StartupMiddleware
                 if (path.StartsWithSegments("/assets/assets", StringComparison.OrdinalIgnoreCase) ||
                     path.StartsWithSegments("/images/gen", StringComparison.OrdinalIgnoreCase))
                     context.Context.Response.Headers.CacheControl = ImmutableCacheControl;
+                else if (path.StartsWithSegments("/images", StringComparison.OrdinalIgnoreCase))
+                    context.Context.Response.Headers.CacheControl = "public, max-age=86400";
             }
         });
         app.UseAuthentication();

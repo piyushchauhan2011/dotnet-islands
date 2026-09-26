@@ -1,14 +1,27 @@
+@inject global::Hotel.Api.Assets.StaticImageVariants Images
 @model global::Hotel.Api.Data.Hotel
 @{
     var price = PublicPageModel.Price(Model.PriceFrom, Model.Currency);
     var hotelLink = PublicPageModel.HotelLink(Model);
     var rating = Model.Rating.ToString("F1");
+    var variants = Images.Find(Model.HeroImage);
 }
 <article class="card hotel-card">
     <a href="@hotelLink" class="hotel-card__image-link">
         <span class="blur-image hotel-card__image-wrap">
-            <img class="blur-image__image hotel-card__image" src="@Model.HeroImage"
-                 alt="@Model.Name" width="560" height="380" loading="lazy" />
+            <picture class="blur-image__picture">
+                @if (variants is not null)
+                {
+                    <source type="image/avif" srcset="@variants.Avif"
+                            sizes="(max-width: 700px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+                    <source type="image/webp" srcset="@variants.Webp"
+                            sizes="(max-width: 700px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+                }
+                <img class="blur-image__image hotel-card__image"
+                     src="@(variants?.Src ?? Model.HeroImage)" alt="@Model.Name"
+                     width="560" height="380" loading="lazy"
+                     sizes="(max-width: 700px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+            </picture>
         </span>
         <span class="tag is-dark is-rounded hotel-card__rating">★ @rating</span>
     </a>

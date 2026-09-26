@@ -1,4 +1,4 @@
-import '../styles.scss'
+import '../admin.scss'
 import { LockKeyhole } from 'lucide-react'
 import { createRoot } from 'react-dom/client'
 import {

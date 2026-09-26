@@ -1,3 +1,4 @@
+@inject global::Hotel.Api.Assets.StaticImageVariants Images
 @model HomeOffer
 @{
     var offer = Model.Offer;
@@ -6,11 +7,20 @@
     var discountLabel = offer.DiscountPercent is int discount
         ? $"{discount}% value"
         : "Seasonal offer";
+    var variants = Images.Find(offer.Image);
 }
 <article class="card offer-card">
     <span class="blur-image offer-card__image-wrap">
-        <img class="blur-image__image offer-card__image" src="@offer.Image"
-             alt="@offer.Title" width="240" height="180" loading="lazy" />
+        <picture class="blur-image__picture">
+            @if (variants is not null)
+            {
+                <source type="image/avif" srcset="@variants.Avif" sizes="240px" />
+                <source type="image/webp" srcset="@variants.Webp" sizes="240px" />
+            }
+            <img class="blur-image__image offer-card__image"
+                 src="@(variants?.Src ?? offer.Image)" alt="@offer.Title"
+                 width="240" height="180" loading="lazy" sizes="240px" />
+        </picture>
     </span>
     <div class="card-content offer-card__body">
         <span class="tag is-secondary is-rounded">@discountLabel</span>

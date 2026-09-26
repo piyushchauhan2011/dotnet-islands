@@ -67,20 +67,23 @@
                 <a class="button site-header__search-button @searchButtonClass"
                    href="/search">Find a stay</a>
             </div>
-            @if (!admin)
+            @if (admin)
+            {
+                <nav class="site-header__admin-mobile-nav" aria-label="Mobile navigation">
+                    <details>
+                        <summary>Menu</summary>
+                        @foreach (var link in links)
+                        {
+                            <a href="@link.href">@link.label</a>
+                        }
+                    </details>
+                </nav>
+            }
+            else
             {
                 <div data-island="MobileNav" data-hydrate="load"
                      data-props="@(PublicPageModel.IslandProps(new { links }))"></div>
             }
-            <nav data-fallback-for="MobileNav" aria-label="Mobile navigation">
-                <details>
-                    <summary>Menu</summary>
-                    @foreach (var link in links)
-                    {
-                        <a href="@link.href">@link.label</a>
-                    }
-                </details>
-            </nav>
         </div>
     </header>
     <main id="main" class="app-main @mainClass">@RenderBody()</main>

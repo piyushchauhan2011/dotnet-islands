@@ -12,7 +12,7 @@ One ASP.NET Core application owns public Razor Pages, JSON APIs, static assets, 
 | `/admin/login`, `/admin/*` | Razor document guard and admin-root React Router | Private/no-store, noindex; protected MVC APIs |
 | `/api/*`, `/media/{id}/{variant}` | Attribute-routed MVC controllers | JSON or allowlisted image variants |
 
-Razor owns the article and catalog content, hero/cards, metadata, canonical URL and JSON-LD. React mounts only the interactive public islands (search/date controls, mobile navigation, gallery, inquiry form); it does not route public pages. Search results, sort/pagination GET forms, gallery links and catalog content remain available without JavaScript, while interactive filters and inquiry submission require it. The admin SPA alone uses React Router, including Back/Forward navigation; login, logout and expired sessions replace the document so the Razor guard runs again.
+Razor owns the article and catalog content, hero/cards, metadata, canonical URL and JSON-LD. React mounts only the interactive public islands (search/date controls, mobile navigation, gallery, inquiry form); it does not route public pages. Search results, sort/pagination GET forms and catalog content remain available without JavaScript; island controls require it. The admin SPA alone uses React Router, including Back/Forward navigation; login, logout and expired sessions replace the document so the Razor guard runs again.
 
 ## Publication flow
 
@@ -35,7 +35,7 @@ Admin catalog edit ── EF transaction ──> catalog + affected snapshot job
                         gateway serves snapshot to public visitor
 ```
 
-The worker does not render during visitor requests. It waits for independent islands to mount and keeps the complete document and CSS. For islands with Razor fallbacks, published HTML retains one fallback and an empty island marker; JavaScript replaces the fallback on mount. Search facets, inquiries and admin state are never put into shared snapshots. Edits queue affected routes in the same EF transaction as catalog publication. An old complete snapshot stays available during regeneration; a new URL returns 503 until its first capture. Unpublished or renamed URLs are removed immediately, return 404, and disappear from the live sitemap. The gateway also serves `robots.txt` and `sitemap.xml` from the published catalog.
+The worker does not render during visitor requests. Razor supplies empty island markers and props; the worker runs JavaScript against the token-protected source page, waits for all islands to mount, and publishes their populated HTML. Visitors receive one representation per island and hydrate it rather than mounting a duplicate fallback. Search facets, inquiries and admin state are never put into shared snapshots. Edits queue affected routes in the same EF transaction as catalog publication. An old complete snapshot stays available during regeneration; a new URL returns 503 until its first capture. Unpublished or renamed URLs are removed immediately, return 404, and disappear from the live sitemap. The gateway also serves `robots.txt` and `sitemap.xml` from the published catalog.
 
 ## Data and security boundaries
 

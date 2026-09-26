@@ -3,14 +3,6 @@ html {
   scroll-behavior: smooth;
 }
 
-html:not(.js-enabled) [data-island] {
-  display: none !important;
-}
-
-[data-fallback-for][hidden] {
-  display: none !important;
-}
-
 body {
   min-width: 20rem;
   background: var(--app-body-bg);

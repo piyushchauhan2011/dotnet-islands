@@ -1,34 +1,34 @@
 import { expect, test } from '@playwright/test'
 
-test('published pages contain crawlable Razor content and rehydrate independent galleries', async ({
+test('published pages contain one hydrated representation of each island', async ({
   page,
   request,
 }) => {
   const html = await (await request.get('/hotels/casa-aurelia')).text()
-  const staticMarkup = await page.evaluate((source) => {
-    const document = new DOMParser().parseFromString(source, 'text/html')
-    return ['Gallery', 'MobileNav'].map((name) => ({
-      fallback: document.querySelectorAll(`[data-fallback-for="${name}"]`)
-        .length,
-      rendered: document.querySelector(`[data-island="${name}"]`)?.children
-        .length,
-    }))
-  }, html)
-  expect(staticMarkup).toEqual([
-    { fallback: 1, rendered: 0 },
-    { fallback: 1, rendered: 0 },
-  ])
   const searchHtml = await (await request.get('/')).text()
-  const searchMarkup = await page.evaluate((source) => {
-    const document = new DOMParser().parseFromString(source, 'text/html')
-    return {
-      fallback: document.querySelectorAll('[data-fallback-for="SearchForm"]')
-        .length,
-      rendered: document.querySelector('[data-island="SearchForm"]')?.children
-        .length,
-    }
-  }, searchHtml)
-  expect(searchMarkup).toEqual({ fallback: 1, rendered: 0 })
+  const staticMarkup = await page.evaluate(
+    ([hotelHtml, homeHtml]) => {
+      const hotel = new DOMParser().parseFromString(hotelHtml, 'text/html')
+      const home = new DOMParser().parseFromString(homeHtml, 'text/html')
+      return {
+        fallbacks:
+          hotel.querySelectorAll('[data-fallback-for]').length +
+          home.querySelectorAll('[data-fallback-for]').length,
+        gallery: hotel.querySelectorAll('[data-island="Gallery"] .gallery-grid')
+          .length,
+        navigation: hotel.querySelectorAll('[data-island="MobileNav"] button')
+          .length,
+        search: home.querySelectorAll('[data-island="SearchForm"] form').length,
+      }
+    },
+    [html, searchHtml],
+  )
+  expect(staticMarkup).toEqual({
+    fallbacks: 0,
+    gallery: 1,
+    navigation: 1,
+    search: 1,
+  })
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   const response = await page.goto('/hotels/casa-aurelia')
@@ -39,8 +39,9 @@ test('published pages contain crawlable Razor content and rehydrate independent 
     'href',
     /\/hotels\/casa-aurelia$/,
   )
-  await expect(page.locator('[data-fallback-for="Gallery"]')).toHaveCount(0)
-  await expect(page.locator('[data-fallback-for="MobileNav"]')).toHaveCount(0)
+  await expect(
+    page.locator('[data-island="Gallery"] .gallery-grid'),
+  ).toHaveCount(1)
   await page
     .getByRole('button', {
       name: 'Open Casa Aurelia gallery image 1 — property',
@@ -55,7 +56,6 @@ test('published pages contain crawlable Razor content and rehydrate independent 
   await expect(page.locator('dialog.gallery-lightbox')).not.toBeVisible()
   await page.goto('/')
   await expect(page.locator('[data-island="SearchForm"] form')).toBeVisible()
-  await expect(page.locator('[data-fallback-for="SearchForm"]')).toHaveCount(0)
   expect(errors).toEqual([])
 })
 
@@ -225,15 +225,12 @@ test('offer pairs its image with the request and keeps terms beside the offer ca
     await expect(staticPage.locator('.inquiry-page__hotel')).toContainText(
       'Offer: Slow season escape',
     )
-    await expect(
-      staticPage.locator('[data-fallback-for="InquiryForm"]'),
-    ).toBeVisible()
   } finally {
     await context.close()
   }
 })
 
-test('hotel photos and FAQs remain usable without JavaScript', async ({
+test('hotel FAQs remain usable without JavaScript', async ({
   browser,
   baseURL,
 }) => {
@@ -244,14 +241,6 @@ test('hotel photos and FAQs remain usable without JavaScript', async ({
   try {
     const page = await context.newPage()
     await page.goto(`${baseURL}/hotels/jayanagar-common-house`)
-    const gallery = page.locator('[data-fallback-for="Gallery"]')
-    await expect(gallery).toBeVisible()
-    await expect(page.locator('[data-island="Gallery"]')).toBeHidden()
-    const photo = gallery.locator('a.gallery-grid__item').first()
-    await expect(photo.locator('img')).toBeVisible()
-    await photo.click()
-    await expect(page).toHaveURL(/\/images\//)
-    await page.goBack()
     const faq = page.locator('.hotel-policies__faq details').first()
     await faq.locator('summary').click()
     await expect(faq.locator('.hotel-policies__answer')).toBeVisible()
@@ -262,8 +251,6 @@ test('hotel photos and FAQs remain usable without JavaScript', async ({
 
 test('room inquiry keeps its stay context beside the form and stacks on mobile', async ({
   page,
-  browser,
-  baseURL,
 }) => {
   const path =
     '/inquire?hotel=hotel-bengaluru-jayanagar&room=hotel-bengaluru-female-dorm'
@@ -302,24 +289,11 @@ test('room inquiry keeps its stay context beside the form and stacks on mobile',
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
     390,
   )
-
-  const context = await browser.newContext({ javaScriptEnabled: false })
-  try {
-    const noScript = await context.newPage()
-    await noScript.goto(`${baseURL}${path}`)
-    await expect(noScript.locator('.inquiry-page__hotel')).toContainText(
-      'Bed in 6-bed women’s ensuite dorm',
-    )
-    await expect(
-      noScript.locator('[data-fallback-for="InquiryForm"]'),
-    ).toContainText('No inquiry has been submitted')
-  } finally {
-    await context.close()
-  }
 })
 
 test('home cards fill their frames and the overlay header gains contrast after scroll', async ({
   page,
+  request,
 }) => {
   await page.setViewportSize({ width: 1568, height: 900 })
   await page.goto('/')
@@ -338,6 +312,16 @@ test('home cards fill their frames and the overlay header gains contrast after s
   expect(imageBounds!.width).toBeGreaterThan(frame!.width * 0.95)
   expect(imageBounds!.height).toBeGreaterThan(frame!.height * 0.95)
   await card.scrollIntoViewIfNeeded()
+  const deliveredImage = await image.evaluate(
+    (node: HTMLImageElement) => node.currentSrc,
+  )
+  expect(new URL(deliveredImage).pathname).toMatch(
+    /^\/images\/gen\/.+\.[a-f0-9]{8}\.avif$/,
+  )
+  const imageResponse = await request.get(deliveredImage)
+  expect(imageResponse.headers()['cache-control']).toBe(
+    'public, max-age=31536000, immutable',
+  )
   await expect(header).toHaveClass(/site-header--solid/)
   await expect(page.locator('.site-header__search-button')).toHaveClass(
     /is-primary/,
@@ -377,31 +361,6 @@ test('destination index lays out its cards in desktop columns and mobile rows', 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
     390,
   )
-})
-
-test('mobile snapshot remains navigable without JavaScript', async ({
-  browser,
-  baseURL,
-}) => {
-  const context = await browser.newContext({
-    javaScriptEnabled: false,
-    viewport: { width: 390, height: 844 },
-  })
-  try {
-    const page = await context.newPage()
-    await page.goto(`${baseURL}/destinations/amalfi-coast`)
-    await expect(page.locator('main h1')).toHaveCount(1)
-    await expect(page.locator('[data-fallback-for="MobileNav"]')).toBeVisible()
-    await expect(page.locator('[data-island="MobileNav"]')).toBeHidden()
-    await page.locator('[data-fallback-for="MobileNav"] summary').click()
-    await page
-      .locator('[data-fallback-for="MobileNav"] a[href="/blog"]')
-      .click()
-    await expect(page).toHaveURL(/\/blog$/)
-    await expect(page.locator('main h1')).toHaveCount(1)
-  } finally {
-    await context.close()
-  }
 })
 
 test('search results occupy two columns beside filters and sort without overlapping footer', async ({
@@ -449,23 +408,11 @@ test('search results occupy two columns beside filters and sort without overlapp
   )
 })
 
-test('search and sorting remain usable without JavaScript', async ({
-  browser,
-  baseURL,
-}) => {
+test('sort remains usable without JavaScript', async ({ browser, baseURL }) => {
   const context = await browser.newContext({ javaScriptEnabled: false })
   try {
     const page = await context.newPage()
-    await page.goto(`${baseURL}/search`)
-    await expect(
-      page.getByRole('form', { name: 'Search hotels' }),
-    ).toBeVisible()
-    await page
-      .getByRole('form', { name: 'Search hotels' })
-      .getByRole('combobox', { name: 'Destination' })
-      .selectOption('amalfi-coast')
-    await page.getByRole('button', { name: 'Search', exact: true }).click()
-    await expect(page).toHaveURL(/destination=amalfi-coast/)
+    await page.goto(`${baseURL}/search?destination=amalfi-coast`)
     await expect(
       page.locator('.search-page__results .hotel-card').first(),
     ).toBeVisible()
@@ -590,7 +537,7 @@ test('admin and internal snapshot source refuse anonymous access', async ({
   await expect(page.locator('main')).toHaveCount(1)
   await expect(page.locator('link[rel="canonical"]')).toHaveCount(0)
   await page.setViewportSize({ width: 390, height: 844 })
-  const mobileMenu = page.locator('[data-fallback-for="MobileNav"]')
+  const mobileMenu = page.locator('.site-header__admin-mobile-nav')
   await expect(mobileMenu).toBeVisible()
   await mobileMenu.locator('summary').click()
   await expect(mobileMenu.getByRole('link', { name: 'Journal' })).toBeVisible()
@@ -691,7 +638,7 @@ test('authenticated CMS rejects mutations without CSRF and exposes the inbox', a
     'Media library',
   )
   await page.setViewportSize({ width: 390, height: 844 })
-  await expect(page.locator('[data-fallback-for="MobileNav"]')).toBeVisible()
+  await expect(page.locator('.site-header__admin-mobile-nav')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
     390,
   )
