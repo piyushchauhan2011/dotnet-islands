@@ -58,26 +58,6 @@
                      x.Id, x.Src, x.Alt, x.Caption, x.Category, x.RoomId
                  })
              }))"></div>
-        <div data-fallback-for="Gallery" class="gallery-grid">
-            @for (var i = 0; i < Math.Min(5, stay.Gallery.Count); i++)
-            {
-                var photo = stay.Gallery[i];
-                <a class="gallery-grid__item @(i == 0
-                       ? "gallery-grid__item--primary" : "") @(i == 3
-                       ? "gallery-grid__item--fourth" : "") @(i == 4
-                       ? "gallery-grid__item--fifth" : "")"
-                   href="@photo.Src">
-                    <span class="gallery-grid__image-wrap">
-                        <img class="gallery-grid__image" src="@photo.Src" alt="@photo.Alt"
-                             loading="@(i == 0 ? "eager" : "lazy")" />
-                    </span>
-                    @if (i > 0)
-                    {
-                        <span class="gallery-grid__category">@photo.Category</span>
-                    }
-                </a>
-            }
-        </div>
     </div>
     @if (stay.Highlights.Count > 0)
     {

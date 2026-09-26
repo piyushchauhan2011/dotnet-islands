@@ -1,10 +1,24 @@
 @model Destination
+@inject global::Hotel.Api.Assets.StaticImageVariants Images
+@{
+    var variants = Images.Find(Model.HeroImage);
+}
 <article class="card destination-card">
     <a class="destination-card__link" href="@PublicPageModel.DestinationLink(Model)">
         <span class="blur-image destination-card__image-wrap">
-            <img class="blur-image__image destination-card__image"
-                 src="@Model.HeroImage" alt="@Model.Name landscape"
-                 width="560" height="680" loading="lazy" />
+            <picture class="blur-image__picture">
+                @if (variants is not null)
+                {
+                    <source type="image/avif" srcset="@variants.Avif"
+                            sizes="(max-width: 700px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+                    <source type="image/webp" srcset="@variants.Webp"
+                            sizes="(max-width: 700px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+                }
+                <img class="blur-image__image destination-card__image"
+                     src="@(variants?.Src ?? Model.HeroImage)"
+                     alt="@Model.Name landscape" width="560" height="680" loading="lazy"
+                     sizes="(max-width: 700px) 100vw, (max-width: 1200px) 50vw, 33vw" />
+            </picture>
         </span>
         <div class="destination-card__content">
             <span class="destination-card__country">@Model.Country</span><h3>@Model.Name</h3>

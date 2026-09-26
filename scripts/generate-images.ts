@@ -17,6 +17,7 @@ import sharp from 'sharp'
 const sourceDir = 'apps/api/wwwroot/images'
 const outputDir = join(sourceDir, 'gen')
 const manifestPath = 'apps/api/ClientApp/src/lib/image-manifest.ts'
+const serverManifestPath = join(sourceDir, 'image-manifest.json')
 const widths = [320, 420, 540, 672, 768, 960, 1120, 1280, 1600, 1920]
 
 /** Legacy fixed-size exports superseded by the generated variants. */
@@ -113,6 +114,12 @@ async function main() {
       webp: webp.join(', '),
     }
   }
+  const serverManifest = JSON.stringify(manifest)
+  if (
+    !existsSync(serverManifestPath) ||
+    (await readFile(serverManifestPath, 'utf8')) !== serverManifest
+  )
+    await writeFile(serverManifestPath, serverManifest)
 
   // Prune variants left behind by a removed or edited source image.
   let pruned = 0

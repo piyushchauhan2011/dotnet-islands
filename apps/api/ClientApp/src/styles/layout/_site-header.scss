@@ -172,7 +172,7 @@
 }
 
 .site-header__mobile-toggle,
-[data-fallback-for='MobileNav'] {
+.site-header__admin-mobile-nav {
   display: none;
 }
 
@@ -186,7 +186,7 @@
   }
 
   .site-header__mobile-toggle,
-  [data-fallback-for='MobileNav'] {
+  .site-header__admin-mobile-nav {
     display: inline-flex;
   }
 }

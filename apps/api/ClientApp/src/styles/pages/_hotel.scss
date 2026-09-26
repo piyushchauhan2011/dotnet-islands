@@ -90,7 +90,14 @@
 }
 
 .hotel-page__gallery {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   padding-top: 1.5rem;
+}
+
+.hotel-page__gallery > [data-island='Gallery'] {
+  grid-area: 1 / 1;
+  min-width: 0;
 }
 
 .hotel-page__anchor {

@@ -14,6 +14,8 @@ if (!DATABASE_URL || !SNAPSHOT_INTERNAL_TOKEN || SNAPSHOT_INTERNAL_TOKEN.length 
 const origin = (process.env.SNAPSHOT_API_ORIGIN || 'http://localhost:5000').replace(/\/$/, '')
 const manifest = readFileSync('apps/api/wwwroot/assets/manifest.json')
 const fingerprint = createHash('sha256').update(manifest)
+// Canonical links are stored in the HTML; an origin change requires new snapshots.
+fingerprint.update('\0PUBLIC_ORIGIN\0').update(process.env.PUBLIC_ORIGIN || '')
 for (const directory of ['apps/api/Pages', 'apps/api/Public', 'apps/api/Assets', 'apps/api/Snapshots', 'apps/snapshot-worker']) {
   function include(dir) {
     for (const file of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
@@ -80,6 +82,9 @@ async function render(job) {
       const executableScripts = [...document.querySelectorAll('script[src]')].map(node => node.getAttribute('src'))
       const csrf = document.querySelector('input[name="__RequestVerificationToken"], input[name="password"]')
       const root = document.documentElement.cloneNode(true)
+      // Vite inserts hints while rendering islands. Persisting them would eagerly
+      // fetch every captured chunk before the visitor actually needs it.
+      root.querySelectorAll('link[rel="modulepreload"]').forEach(link => link.remove())
       // CSR creates adjacent text nodes; HTML parsing would coalesce them. React hydration
       // needs the same boundaries that renderToString normally marks with empty comments.
       for (const island of root.querySelectorAll('[data-island]')) {
@@ -90,18 +95,6 @@ async function render(job) {
           if (node.previousSibling?.nodeType === Node.TEXT_NODE) adjacent.push(node)
         }
         for (const node of adjacent) node.before(document.createComment(''))
-      }
-      // Store one representation of each progressive island. The Razor fallback
-      // serves no-JS visitors and crawlers; the client mounts into the empty marker.
-      for (const island of root.querySelectorAll('[data-island]')) {
-        const fallback = [...(island.parentElement?.children ?? [])].find(
-          child => child !== island && child.getAttribute('data-fallback-for') === island.getAttribute('data-island'))
-        if (fallback) island.replaceChildren()
-      }
-      root.classList.remove('js-enabled')
-      for (const fallback of root.querySelectorAll('[data-fallback-for]')) {
-        fallback.removeAttribute('hidden')
-        fallback.style.removeProperty('display')
       }
       return { html: '<!doctype html>\n' + root.outerHTML, canonical, h1,
         islandCount: islands.length, unrendered: islands.filter(node => !node.firstElementChild).length,

@@ -29,7 +29,7 @@ pnpm test:e2e
 pnpm lighthouse
 ```
 
-The browser suite covers published pages, hydration/no-JavaScript fallbacks, live filtered search, and admin/CSRF behavior. Lighthouse covers four public routes, targeting 100 in each category. `pnpm images` regenerates responsive static variants and their manifest when source images change. `pnpm storybook` opens component stories.
+The browser suite covers published pages, island hydration, live filtered search, catalog content without JavaScript, and admin/CSRF behavior. Lighthouse covers four public routes, targeting 100 in each category. `pnpm images` regenerates responsive static variants and their manifest when source images change. `pnpm storybook` opens component stories.
 
 For C#: `pnpm format:csharp` applies whitespace formatting; `pnpm check:csharp` verifies formatting and the handwritten 100-column limit; `pnpm lint:csharp` builds both projects with Roslyn analyzers. Root `check` and `lint` include these checks. `.editorconfig` and `CodeMetricsConfig.txt` set method, complexity, coupling and maintainability tripwires; generated migrations and build outputs are excluded from the handwritten line limit. Keep HTTP handlers, validation, persistence and publication in focused units without splitting every class behind an interface.
 
