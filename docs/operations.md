@@ -14,6 +14,8 @@ docker compose --env-file .env up --build -d
 
 Deploy API and worker images from the same source together. The worker rejects captures if its Vite manifest does not match the API. Rebuild the worker image when upgrading Playwright so the installed Chromium headless shell matches the pinned package. Local runs instead need `pnpm exec playwright install chromium`.
 
+CI builds both container images to validate their Dockerfiles; it does not push or retain the images. The container job deliberately does not export a remote build cache because exporting its large .NET and Playwright layers took longer than building them in the measured run.
+
 ## Persistent state and recovery
 
 Keep PostgreSQL data, uploaded media (`MEDIA_DIR`), Data Protection keys (`DATA_PROTECTION_KEYS_DIR`), and hashed assets across releases. Compose mounts `postgres_data`, `media_data`, `protection_keys`, and `asset_data`; the API uses `/data/media`, `/data/keys`, and `/data/assets`. Old hashed assets must remain available while stored or cached snapshots reference them; locally these are in `apps/api/wwwroot/assets`. The server reads the Vite manifest on startup, so restart it after an asset rebuild.
