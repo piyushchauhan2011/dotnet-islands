@@ -1,5 +1,5 @@
-using Hotel.Api;
-using Hotel.Api.Data;
+using Hotel.Web;
+using Hotel.Web.Data;
 using Microsoft.EntityFrameworkCore;
 
 AppStartup.LoadDevelopmentEnvironment();
@@ -12,7 +12,7 @@ StartupMiddleware.Configure(app);
 AppStartup.MapEndpoints(app);
 await app.RunAsync();
 
-namespace Hotel.Api
+namespace Hotel.Web
 {
     internal static class AppStartup
     {

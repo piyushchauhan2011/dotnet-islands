@@ -1,9 +1,9 @@
 using System.Text.Json;
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 [Route("api/admin/inquiries")]
 [ServiceFilter(typeof(AdminCacheFilter))]

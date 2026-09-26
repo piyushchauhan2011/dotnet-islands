@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 [Route("api/csrf")]
 public sealed class AdminCsrfController(IHostEnvironment environment) : ControllerBase

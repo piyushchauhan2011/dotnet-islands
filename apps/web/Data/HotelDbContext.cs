@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace Hotel.Api.Data;
+namespace Hotel.Web.Data;
 
 public sealed class HotelDbContext(DbContextOptions<HotelDbContext> options) : DbContext(options)
 {

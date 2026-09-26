@@ -1,7 +1,7 @@
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 public sealed class AdminDashboardQueries(HotelDbContext db)
 {

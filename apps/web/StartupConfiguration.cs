@@ -1,14 +1,14 @@
-using Hotel.Api.Admin;
-using Hotel.Api.Assets;
-using Hotel.Api.Data;
-using Hotel.Api.Public;
-using Hotel.Api.Snapshots;
+using Hotel.Web.Admin;
+using Hotel.Web.Assets;
+using Hotel.Web.Data;
+using Hotel.Web.Public;
+using Hotel.Web.Snapshots;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Npgsql;
 
-namespace Hotel.Api;
+namespace Hotel.Web;
 
 internal static class StartupServices
 {

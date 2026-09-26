@@ -1,9 +1,9 @@
 using System.Text.Json;
-using Hotel.Api.Admin;
+using Hotel.Web.Admin;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Hotel.Api.Public;
+namespace Hotel.Web.Public;
 
 [Route("api")]
 public sealed class InquiryApiController(

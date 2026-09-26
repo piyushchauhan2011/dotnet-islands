@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel.Api.Snapshots;
+namespace Hotel.Web.Snapshots;
 
 public static class SnapshotGateway
 {

@@ -1,7 +1,7 @@
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 // Called inside the CMS mutation transaction: removed routes must lose their old HTML immediately.
 internal static class SnapshotInvalidation

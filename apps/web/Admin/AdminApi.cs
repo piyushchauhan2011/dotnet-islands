@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 public static class AdminApi
 {

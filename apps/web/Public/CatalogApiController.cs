@@ -1,7 +1,7 @@
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Hotel.Api.Public;
+namespace Hotel.Web.Public;
 
 [Route("api")]
 public sealed class CatalogApiController(CatalogPageService catalog, HotelDbContext db)

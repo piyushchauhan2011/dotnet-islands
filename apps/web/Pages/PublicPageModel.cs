@@ -1,12 +1,12 @@
-using CatalogHotel = global::Hotel.Api.Data.Hotel;
+using CatalogHotel = global::Hotel.Web.Data.Hotel;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using Hotel.Api.Data;
-using Hotel.Api.Public;
+using Hotel.Web.Data;
+using Hotel.Web.Public;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-namespace Hotel.Api.Pages;
+namespace Hotel.Web.Pages;
 
 public abstract class PublicPageModel(CatalogPageService catalog) : PageModel
 {

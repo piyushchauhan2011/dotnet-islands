@@ -1,7 +1,7 @@
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel.Api.Public;
+namespace Hotel.Web.Public;
 
 // Catalog page models serve Razor too; these projections keep the public JSON contract separate.
 internal static class PublicApiProjection

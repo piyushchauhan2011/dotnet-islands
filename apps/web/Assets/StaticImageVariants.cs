@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Hotel.Api.Assets;
+namespace Hotel.Web.Assets;
 
 public sealed class StaticImageVariants(IWebHostEnvironment environment)
 {

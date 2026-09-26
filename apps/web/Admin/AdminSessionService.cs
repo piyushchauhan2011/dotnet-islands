@@ -1,10 +1,10 @@
 using System.Security.Claims;
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 public sealed class AdminSessionService(HotelDbContext db)
 {

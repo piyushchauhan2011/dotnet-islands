@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 internal sealed class AdminInputException(Dictionary<string, string> errors)
     : Exception("Invalid content.")

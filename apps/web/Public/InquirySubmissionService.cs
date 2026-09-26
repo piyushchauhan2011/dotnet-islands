@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Net.Mail;
 using System.Text.Json;
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel.Api.Public;
+namespace Hotel.Web.Public;
 
 public sealed class InquirySubmissionService(HotelDbContext db, CatalogPageService catalog)
 {

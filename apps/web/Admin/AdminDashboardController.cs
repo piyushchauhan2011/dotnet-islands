@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 [Route("api/admin")]
 [ServiceFilter(typeof(AdminCacheFilter))]

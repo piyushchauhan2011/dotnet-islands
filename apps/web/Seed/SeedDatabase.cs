@@ -5,7 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Npgsql;
 using NpgsqlTypes;
 
-namespace Hotel.Api.Data;
+namespace Hotel.Web.Data;
 
 public static class SeedDatabase
 {

@@ -10,6 +10,8 @@ Start with [Quick start](quick-start.md) to prepare the environment and [Archite
 - Snapshot gateway and capture: `apps/web/Snapshots/`, `apps/snapshot-worker/`.
 - Integration and browser coverage: `apps/web.tests/`, `tests/e2e/`; image generation: `scripts/generate-images.ts`.
 
+The .NET application is `apps/web/web.csproj` (Nx project `web`); integration tests are `apps/web.tests/web.tests.csproj`. Use the root `pnpm` scripts for builds and checks.
+
 Preserve the Razor/React boundary and the catalog-edit/snapshot-invalidation transaction. Avoid putting personalized search, inquiry or admin state into public snapshots. Use the existing MVC controller and Razor patterns rather than introducing a second public router.
 
 ## Checks
@@ -30,6 +32,8 @@ pnpm lighthouse
 ```
 
 The browser suite covers published pages, island hydration, live filtered search, catalog content without JavaScript, and admin/CSRF behavior. Lighthouse covers four public routes, targeting 100 in each category. `pnpm images` regenerates responsive static variants and their manifest when source images change. `pnpm storybook` opens component stories.
+
+Playwright journeys in `tests/e2e/*.spec.ts` are grouped by related screens and flows. Keep user-facing flows, layout and response assertions in the specs; put reusable screen locators and interactions in `tests/e2e/pages/`. Prefer role/label locators for controls and reserve CSS selectors for layout or markup contracts. Use a fresh browser context with `javaScriptEnabled: false` for progressive-enhancement checks and close it in `finally`. The Playwright config uses `SNAPSHOT_API_ORIGIN` when the gateway is not at `http://localhost:5000`; authenticated CMS coverage also requires `ADMIN_PASSWORD`.
 
 For C#: `pnpm format:csharp` applies whitespace formatting; `pnpm check:csharp` verifies formatting and the handwritten 100-column limit; `pnpm lint:csharp` builds both projects with Roslyn analyzers. Root `check` and `lint` include these checks. `.editorconfig` and `CodeMetricsConfig.txt` set method, complexity, coupling and maintainability tripwires; generated migrations and build outputs are excluded from the handwritten line limit. Keep HTTP handlers, validation, persistence and publication in focused units without splitting every class behind an interface.
 
