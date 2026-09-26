@@ -59,6 +59,28 @@ test('published pages contain crawlable Razor content and rehydrate independent 
   expect(errors).toEqual([])
 })
 
+test('home page fetches the mobile dialog only after opening the menu', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 393, height: 852 })
+  const dialogRequests: string[] = []
+  page.on('request', (request) => {
+    if (/\/IslandDialog-[^/]+\.js$/.test(new URL(request.url()).pathname))
+      dialogRequests.push(request.url())
+  })
+  await page.goto('/')
+  await expect(page.locator('[data-island="SearchForm"] form')).toBeVisible()
+  expect(dialogRequests).toHaveLength(0)
+
+  const menu = page.getByRole('button', { name: 'Open navigation' })
+  await menu.click()
+  await expect(page.locator('dialog.mobile-navigation')).toBeVisible()
+  expect(dialogRequests).toHaveLength(1)
+  await page.getByRole('button', { name: 'Close navigation' }).click()
+  await expect(page.locator('dialog.mobile-navigation')).not.toBeVisible()
+  await expect(menu).toBeFocused()
+})
+
 test('hotel detail presents gallery, room choices and useful sections without dead space', async ({
   page,
 }) => {

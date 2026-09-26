@@ -1,0 +1,16 @@
+name: hotel-ssr-audit
+type: generic
+webserver_type: generic
+omit_containers: [db]
+performance_mode: none
+
+web_extra_daemons:
+  - name: app-proxy
+    command: nginx -c /var/www/html/.ddev/proxy.conf -g 'daemon off;'
+    directory: /var/www/html
+
+web_extra_exposed_ports:
+  - name: app-proxy
+    container_port: 8080
+    http_port: 80
+    https_port: 443

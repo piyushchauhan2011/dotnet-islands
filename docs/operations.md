@@ -16,6 +16,36 @@ Deploy API and worker images from the same source together. The worker rejects c
 
 CI builds both container images to validate their Dockerfiles; it does not push or retain the images. The container job deliberately does not export a remote build cache because exporting its large .NET and Playwright layers took longer than building them in the measured run.
 
+## Local HTTPS Lighthouse audit (DDEV)
+
+The optional `.ddev` project is an HTTPS reverse proxy for the **published snapshot** app; it does not run the API or replace the repository's PostgreSQL. Complete the [quick start](quick-start.md) through seed, then start DDEV (`ddev start`). DDEV terminates TLS at its router and forwards through nginx to the host API at `host.docker.internal:5000`. Run the API and worker on the host in a separate terminal:
+
+```sh
+PUBLIC_ORIGIN=https://hotel-ssr-audit.ddev.site API_LISTEN_URL=http://0.0.0.0:5000 pnpm dev:snapshots
+```
+
+Wait for the first snapshot publications (or the origin-change republish of existing snapshots) before auditing. The worker fingerprints `PUBLIC_ORIGIN` so a restart with the HTTPS origin queues previously published pages for regeneration; until it finishes, old HTML can still contain `http://localhost:5000` canonical links. The API must bind beyond loopback to be reachable from DDEV's container; `0.0.0.0:5000` also exposes it to your LAN unless a host firewall blocks it. Use only on a trusted local network; stop the process afterward. The nginx proxy returns 404 for `/_snapshot-source` and does not cache or bundle CSS/JS. Do not use Vite HMR mode for these measurements: its development assets and localhost URLs are not representative.
+
+Verify the HTTPS endpoint and negotiated protocol before measuring (DDEV must have installed/trusted its local certificate):
+
+```sh
+curl --fail --silent --show-error https://hotel-ssr-audit.ddev.site/health
+curl -s -o /dev/null -w '%{http_version}\n' --http2 https://hotel-ssr-audit.ddev.site/
+LIGHTHOUSE_ORIGIN=https://hotel-ssr-audit.ddev.site pnpm lighthouse
+```
+
+The second command should report `2` for HTTP/2; avoid `-k` or Chrome certificate-ignoring flags, which change the audit. If local curl lacks HTTP/2 support, inspect the Protocol column in Chromium DevTools Network instead. DDEV's HTTPS endpoint does not imply HTTP/3: verify HTTP/3 separately with a QUIC-capable ingress/client before attributing any score difference to it. Lighthouse reports are written to `.lighthouseci/`. Compare repeated runs with the same machine, Chrome, page content, and Lighthouse settings; local proxy latency and certificate trust affect results. Without `LIGHTHOUSE_ORIGIN`, CI continues to audit `http://127.0.0.1:5000`.
+
+`pnpm lighthouse` runs the repository's desktop preset and is **not** the same experiment as DevTools with Slow 4G/advanced throttling. To inspect one desktop URL with a repeatable network/CPU profile instead of the CI assertions, run:
+
+```sh
+pnpm exec lhci collect --url=https://hotel-ssr-audit.ddev.site/hotels/jayanagar-common-house --numberOfRuns=3 --settings.throttlingMethod=devtools --settings.throttling.rttMs=150 --settings.throttling.throughputKbps=1600 --settings.throttling.cpuSlowdownMultiplier=4
+```
+
+Compare its CLS and filmstrip with the same flags before/after a change; these values are not comparable to the default desktop CI scores or to a differently configured Brave/Chrome DevTools profile. An HTTP/2 connection multiplexes requests but cannot prevent layout shifts caused by client-side markup replacement.
+
+For a JavaScript waterfall audit, rebuild and restart the API **and** snapshot worker, then wait for republished snapshots: older HTML contains Vite-inserted `modulepreload` links captured during publication. The worker removes those hints from new snapshots. On the home page, the search form and menu still hydrate on load, so their React and component chunks are expected; the calendar loads on date-picker activation and the menu dialog only when opened. In DevTools, disable cache and compare requests before and after opening those controls; a preload is a network request, not proof that a chunk executed.
+
 ## Persistent state and recovery
 
 Keep PostgreSQL data, uploaded media (`MEDIA_DIR`), Data Protection keys (`DATA_PROTECTION_KEYS_DIR`), and hashed assets across releases. Compose mounts `postgres_data`, `media_data`, `protection_keys`, and `asset_data`; the API uses `/data/media`, `/data/keys`, and `/data/assets`. Old hashed assets must remain available while stored or cached snapshots reference them; locally these are in `apps/api/wwwroot/assets`. The server reads the Vite manifest on startup, so restart it after an asset rebuild.

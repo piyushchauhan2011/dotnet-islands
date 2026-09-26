@@ -1,11 +1,13 @@
+const origin = (process.env.LIGHTHOUSE_ORIGIN || 'http://127.0.0.1:5000').replace(/\/$/, '')
+
 module.exports = {
   ci: {
     collect: {
       url: [
-        'http://127.0.0.1:5000/',
-        'http://127.0.0.1:5000/destinations/amalfi-coast',
-        'http://127.0.0.1:5000/hotels/casa-aurelia',
-        'http://127.0.0.1:5000/blog/the-art-of-the-unhurried-arrival',
+        `${origin}/`,
+        `${origin}/destinations/amalfi-coast`,
+        `${origin}/hotels/casa-aurelia`,
+        `${origin}/blog/the-art-of-the-unhurried-arrival`,
       ],
       numberOfRuns: 1,
       settings: { preset: 'desktop' },

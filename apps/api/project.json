@@ -17,7 +17,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "dotnet run --project apps/api/api.csproj --no-launch-profile -- --urls http://localhost:5000",
+        "command": "dotnet run --project apps/api/api.csproj --no-launch-profile -- --urls ${API_LISTEN_URL:-http://localhost:5000}",
         "cwd": "."
       },
       "cache": false,
