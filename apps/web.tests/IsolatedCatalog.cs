@@ -21,7 +21,7 @@ public sealed class IsolatedCatalog : IAsyncLifetime
     public string AdminPassword => _password;
     public Uri Origin => new($"http://127.0.0.1:{_port}");
     public string ReferenceImagePath =>
-        Path.Combine(_root, "apps/api/wwwroot/images/hero-1280.webp");
+        Path.Combine(_root, "apps/web/wwwroot/images/hero-1280.webp");
 
     private static string FindRoot()
     {
@@ -108,7 +108,7 @@ public sealed class IsolatedCatalog : IAsyncLifetime
         };
         var arguments = new[]
         {
-            "run", "--project", Path.Combine(_root, "apps/api/api.csproj"),
+            "run", "--project", Path.Combine(_root, "apps/web/api.csproj"),
             "--no-build", "--no-launch-profile", "--"
         };
         foreach (var argument in arguments.Concat(args))

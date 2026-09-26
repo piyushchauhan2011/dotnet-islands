@@ -12,11 +12,11 @@ if (existsSync('.env')) {
 const { DATABASE_URL, SNAPSHOT_INTERNAL_TOKEN } = process.env
 if (!DATABASE_URL || !SNAPSHOT_INTERNAL_TOKEN || SNAPSHOT_INTERNAL_TOKEN.length < 32) throw new Error('DATABASE_URL and a 32+ character SNAPSHOT_INTERNAL_TOKEN are required.')
 const origin = (process.env.SNAPSHOT_API_ORIGIN || 'http://localhost:5000').replace(/\/$/, '')
-const manifest = readFileSync('apps/api/wwwroot/assets/manifest.json')
+const manifest = readFileSync('apps/web/wwwroot/assets/manifest.json')
 const fingerprint = createHash('sha256').update(manifest)
 // Canonical links are stored in the HTML; an origin change requires new snapshots.
 fingerprint.update('\0PUBLIC_ORIGIN\0').update(process.env.PUBLIC_ORIGIN || '')
-for (const directory of ['apps/api/Pages', 'apps/api/Public', 'apps/api/Assets', 'apps/api/Snapshots', 'apps/snapshot-worker']) {
+for (const directory of ['apps/web/Pages', 'apps/web/Public', 'apps/web/Assets', 'apps/web/Snapshots', 'apps/snapshot-worker']) {
   function include(dir) {
     for (const file of readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
       const path = `${dir}/${file.name}`

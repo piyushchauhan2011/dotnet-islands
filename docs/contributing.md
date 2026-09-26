@@ -4,11 +4,11 @@ Start with [Quick start](quick-start.md) to prepare the environment and [Archite
 
 ## Where to change things
 
-- Public pages and server rendering: `apps/api/Pages/`, `apps/api/Public/`.
-- Admin APIs and catalog publication: `apps/api/Admin/`; persistence and migrations: `apps/api/Data/`, `apps/api/Migrations/`.
-- Public interactive islands, admin SPA, shared React components and styles: `apps/api/ClientApp/src/`.
-- Snapshot gateway and capture: `apps/api/Snapshots/`, `apps/snapshot-worker/`.
-- Integration and browser coverage: `apps/api.tests/`, `tests/e2e/`; image generation: `scripts/generate-images.ts`.
+- Public pages and server rendering: `apps/web/Pages/`, `apps/web/Public/`.
+- Admin APIs and catalog publication: `apps/web/Admin/`; persistence and migrations: `apps/web/Data/`, `apps/web/Migrations/`.
+- Public interactive islands, admin SPA, shared React components and styles: `apps/web/ClientApp/src/`.
+- Snapshot gateway and capture: `apps/web/Snapshots/`, `apps/snapshot-worker/`.
+- Integration and browser coverage: `apps/web.tests/`, `tests/e2e/`; image generation: `scripts/generate-images.ts`.
 
 Preserve the Razor/React boundary and the catalog-edit/snapshot-invalidation transaction. Avoid putting personalized search, inquiry or admin state into public snapshots. Use the existing MVC controller and Razor patterns rather than introducing a second public router.
 

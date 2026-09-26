@@ -34,6 +34,6 @@ indent_style = space
 indent_size = 4
 max_line_length = 100
 
-[apps/api/Migrations/*.cs]
+[apps/web/Migrations/*.cs]
 generated_code = true
 dotnet_diagnostic.MA0051.severity = none
