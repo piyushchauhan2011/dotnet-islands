@@ -107,6 +107,15 @@ jobs:
       - run: pnpm snapshots:all
       - run: pnpm test:e2e
       - run: pnpm lighthouse
+      - name: Save Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/*.report.*
+          if-no-files-found: ignore
+          include-hidden-files: true
+          retention-days: 7
 
   containers:
     runs-on: ubuntu-24.04
