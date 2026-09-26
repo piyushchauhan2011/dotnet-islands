@@ -2,7 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 public sealed class AdminMediaController(AdminMediaService media) : ControllerBase
 {

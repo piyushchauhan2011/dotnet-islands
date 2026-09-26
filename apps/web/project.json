@@ -1,6 +1,6 @@
 {
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "name": "api",
+  "name": "web",
   "root": "apps/web",
   "targets": {
     "assets-build": {
@@ -17,7 +17,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "dotnet run --project apps/web/api.csproj --no-launch-profile -- --urls ${API_LISTEN_URL:-http://localhost:5000}",
+        "command": "dotnet run --project apps/web/web.csproj --no-launch-profile -- --urls ${API_LISTEN_URL:-http://localhost:5000}",
         "cwd": "."
       },
       "cache": false,
@@ -27,14 +27,14 @@
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/apps/web/bin/publish"],
       "options": {
-        "command": "dotnet publish apps/web/api.csproj --configuration Release --output apps/web/bin/publish",
+        "command": "dotnet publish apps/web/web.csproj --configuration Release --output apps/web/bin/publish",
         "cwd": "."
       }
     },
     "migrate": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "dotnet run --project apps/web/api.csproj -- migrate",
+        "command": "dotnet run --project apps/web/web.csproj -- migrate",
         "cwd": "."
       },
       "cache": false
@@ -42,7 +42,7 @@
     "seed": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "dotnet run --project apps/web/api.csproj -- seed",
+        "command": "dotnet run --project apps/web/web.csproj -- seed",
         "cwd": "."
       },
       "cache": false

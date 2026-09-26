@@ -1,11 +1,11 @@
 using System.Security.Claims;
-using Hotel.Api.Assets;
-using Hotel.Api.Data;
+using Hotel.Web.Assets;
+using Hotel.Web.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel.Api.Pages;
+namespace Hotel.Web.Pages;
 
 public sealed class AdminPageModel(HotelDbContext db, IAssetManifest assets) : PageModel
 {

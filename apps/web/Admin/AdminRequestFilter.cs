@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 public sealed class AdminCacheFilter : IAsyncActionFilter
 {

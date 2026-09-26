@@ -1,10 +1,10 @@
-using CatalogHotel = global::Hotel.Api.Data.Hotel;
+using CatalogHotel = global::Hotel.Web.Data.Hotel;
 using System.Globalization;
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel.Api.Public;
+namespace Hotel.Web.Public;
 
 // Razor pages query the catalog directly; no HTTP loopback and no unpublished relations.
 public sealed class CatalogPageService(HotelDbContext db)

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Hotel.Api.Data;
+namespace Hotel.Web.Data;
 
 public sealed class Destination
 {

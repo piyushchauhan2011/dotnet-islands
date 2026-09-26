@@ -1,8 +1,8 @@
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.EntityFrameworkCore;
-using CatalogHotel = global::Hotel.Api.Data.Hotel;
+using CatalogHotel = global::Hotel.Web.Data.Hotel;
 
-namespace Hotel.Api.Public;
+namespace Hotel.Web.Public;
 
 internal sealed class HotelPageCatalogService(HotelDbContext db)
 {

@@ -1,9 +1,9 @@
 using System.Text.Json;
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using ImageMagick;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 internal sealed record AdminMediaUpload(
     string Filename, string MimeType, string Alt, string? Caption, byte[] Bytes);

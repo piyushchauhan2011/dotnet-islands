@@ -5,7 +5,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 
-namespace Hotel.Api.Tests;
+namespace Hotel.Web.Tests;
 
 
 public sealed class CatalogIntegrationTests(IsolatedCatalog app) : IClassFixture<IsolatedCatalog>

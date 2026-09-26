@@ -10,6 +10,8 @@ Start with [Quick start](quick-start.md) to prepare the environment and [Archite
 - Snapshot gateway and capture: `apps/web/Snapshots/`, `apps/snapshot-worker/`.
 - Integration and browser coverage: `apps/web.tests/`, `tests/e2e/`; image generation: `scripts/generate-images.ts`.
 
+The .NET application is `apps/web/web.csproj` (Nx project `web`); integration tests are `apps/web.tests/web.tests.csproj`. Use the root `pnpm` scripts for builds and checks.
+
 Preserve the Razor/React boundary and the catalog-edit/snapshot-invalidation transaction. Avoid putting personalized search, inquiry or admin state into public snapshots. Use the existing MVC controller and Razor patterns rather than introducing a second public router.
 
 ## Checks

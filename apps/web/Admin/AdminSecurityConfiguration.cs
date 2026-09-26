@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 internal static class AdminSecurityConfiguration
 {

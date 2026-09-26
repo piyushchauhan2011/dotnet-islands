@@ -3,7 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using Npgsql;
 
-namespace Hotel.Api.Tests;
+namespace Hotel.Web.Tests;
 
 public sealed class IsolatedCatalog : IAsyncLifetime
 {
@@ -11,7 +11,7 @@ public sealed class IsolatedCatalog : IAsyncLifetime
     private readonly string _databaseName = "hotel_test_" + Guid.NewGuid().ToString("N");
     private readonly string _mediaDirectory = Path.Combine(
         Path.GetTempPath(),
-        "hotel-api-tests-" + Guid.NewGuid().ToString("N"));
+        "hotel-web-tests-" + Guid.NewGuid().ToString("N"));
     private readonly string _password = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
     private Process? _server;
     private string _databaseUrl = "";
@@ -108,7 +108,7 @@ public sealed class IsolatedCatalog : IAsyncLifetime
         };
         var arguments = new[]
         {
-            "run", "--project", Path.Combine(_root, "apps/web/api.csproj"),
+            "run", "--project", Path.Combine(_root, "apps/web/web.csproj"),
             "--no-build", "--no-launch-profile", "--"
         };
         foreach (var argument in arguments.Concat(args))
@@ -123,7 +123,7 @@ public sealed class IsolatedCatalog : IAsyncLifetime
         start.Environment["Logging__LogLevel__Microsoft.EntityFrameworkCore.Database.Command"] =
             "Warning";
         var process = Process.Start(start)
-            ?? throw new InvalidOperationException("Could not start isolated API.");
+            ?? throw new InvalidOperationException("Could not start isolated web application.");
         process.OutputDataReceived += (_, _) => { };
         process.ErrorDataReceived += (_, _) => { };
         process.BeginOutputReadLine();
@@ -137,7 +137,7 @@ public sealed class IsolatedCatalog : IAsyncLifetime
         await process.WaitForExitAsync();
         if (process.ExitCode != 0)
             throw new InvalidOperationException(
-                $"Isolated API {action} failed with code {process.ExitCode}.");
+                $"Isolated web application {action} failed with code {process.ExitCode}.");
     }
 
     public async Task<string?> JobVersion(string path)

@@ -1,9 +1,9 @@
 using System.Text.Json;
-using Hotel.Api.Data;
+using Hotel.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 
-namespace Hotel.Api.Admin;
+namespace Hotel.Web.Admin;
 
 public enum AdminCatalogStatus
 {
@@ -178,7 +178,7 @@ public sealed class AdminCatalogService(HotelDbContext db)
             return new(AdminCatalogStatus.NotFound);
         state.OldPath = entity is null ? null : $"/hotels/{entity.Slug}";
         state.PreviousDestinationId = entity?.DestinationId;
-        entity ??= new Hotel.Api.Data.Hotel { Id = id, CreatedAt = now };
+        entity ??= new Hotel.Web.Data.Hotel { Id = id, CreatedAt = now };
         entity.DestinationId = destinationId;
         entity.Name = name;
         entity.Slug = slug;
@@ -195,7 +195,7 @@ public sealed class AdminCatalogService(HotelDbContext db)
     }
 
     private static void ApplyHotelMetadata(
-        Hotel.Api.Data.Hotel entity, double rating, int price, string currency,
+        Hotel.Web.Data.Hotel entity, double rating, int price, string currency,
         double? latitude, double? longitude, string seoTitle, string seoDescription,
         string status, DateTime now)
     {
@@ -391,7 +391,7 @@ public sealed class AdminCatalogService(HotelDbContext db)
         x.PublishedAt = status == "published" ? x.PublishedAt ?? now : null;
         x.UpdatedAt = now;
     }
-    private static void SetPublication(Hotel.Api.Data.Hotel x, string status, DateTime now)
+    private static void SetPublication(Hotel.Web.Data.Hotel x, string status, DateTime now)
     {
         x.Status = status;
         x.PublishedAt = status == "published" ? x.PublishedAt ?? now : null;

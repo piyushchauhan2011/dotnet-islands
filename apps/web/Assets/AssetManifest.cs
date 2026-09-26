@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
 
-namespace Hotel.Api.Assets;
+namespace Hotel.Web.Assets;
 
 public interface IAssetManifest
 {
