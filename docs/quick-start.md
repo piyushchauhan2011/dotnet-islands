@@ -4,9 +4,9 @@ Run commands from the repository root. For system design, see [Architecture](arc
 
 ## Prerequisites
 
-- .NET SDK 10.0.401, Node 26.10.0, pnpm 12.6.0 (pinned in `mise.toml`; `mise install` can install them).
+- .NET SDK 10.0.401, Node 26.10.0, pnpm 12.6.0, Go 1.26.5 (pinned in `mise.toml`; `mise install` can install them).
 - Docker with Compose for PostgreSQL.
-- Playwright Chromium for local snapshot publishing.
+- Chrome or Chromium installed locally for chromedp snapshot publishing; Playwright Chromium for browser tests (`pnpm exec playwright install chromium`).
 
 ## Prepare the database and catalog
 
@@ -15,7 +15,7 @@ cp .env.example .env
 # Edit .env: use the same password in POSTGRES_PASSWORD, DATABASE_URL and TEST_DATABASE_URL.
 # Replace SNAPSHOT_INTERNAL_TOKEN (generate with openssl rand -hex 32) and ADMIN_PASSWORD.
 pnpm install --frozen-lockfile
-pnpm exec playwright install chromium
+# Install Chrome or Chromium locally for snapshots.
 docker compose --env-file .env up -d postgres
 pnpm build
 pnpm db:migrate

@@ -1,6 +1,6 @@
 # Architecture
 
-One ASP.NET Core application owns public Razor Pages, JSON APIs, static assets, and the protected admin document. PostgreSQL stores the catalog and published HTML; a separate Node/Playwright worker captures pages. See [Quick start](quick-start.md) to run both processes.
+One ASP.NET Core application owns public Razor Pages, JSON APIs, static assets, and the protected admin document. PostgreSQL stores the catalog and published HTML; a separate Go/chromedp worker captures pages. See [Quick start](quick-start.md) to run both processes.
 
 ## Request ownership
 
@@ -20,7 +20,7 @@ Razor owns the article and catalog content, hero/cards, metadata, canonical URL 
 Admin catalog edit ── EF transaction ──> catalog + affected snapshot jobs (PostgreSQL)
                                          │
                                          v
-                              Playwright worker leases a job
+                              chromedp worker leases a job
                                          │
                                          v
                     token-protected Razor /_snapshot-source route
@@ -39,7 +39,7 @@ The worker does not render during visitor requests. It waits for independent isl
 
 ## Data and security boundaries
 
-- `apps/api/Pages/` and `apps/api/Public/` implement public Razor/API behavior; `apps/api/Snapshots/` gates snapshot responses. `apps/snapshot-worker/worker.mjs` captures and publishes.
+- `apps/api/Pages/` and `apps/api/Public/` implement public Razor/API behavior; `apps/api/Snapshots/` gates snapshot responses. `apps/snapshot-worker/main.go` and `capture.go` capture and publish.
 - `apps/api/Data/` and `apps/api/Migrations/` hold EF persistence; `apps/api/Admin/` handles admin APIs, catalog edits, media, and invalidation. `apps/api/ClientApp/src/islands/` contains public mounts; `src/admin/` contains the admin SPA.
 - Admin login uses a 12-hour HttpOnly SameSite cookie with persistent Data Protection keys. Protected APIs recheck the cookie user against the database and require double-submit CSRF for writes.
 - The source route requires `X-Snapshot-Token` matching `SNAPSHOT_INTERNAL_TOKEN` and rejects unknown paths. Keep that route inaccessible at the public ingress too. Media originals and generated WebP variants live under `MEDIA_DIR`; persist the directory with the database.

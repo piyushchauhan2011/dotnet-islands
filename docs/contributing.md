@@ -7,7 +7,7 @@ Start with [Quick start](quick-start.md) to prepare the environment and [Archite
 - Public pages and server rendering: `apps/api/Pages/`, `apps/api/Public/`.
 - Admin APIs and catalog publication: `apps/api/Admin/`; persistence and migrations: `apps/api/Data/`, `apps/api/Migrations/`.
 - Public interactive islands, admin SPA, shared React components and styles: `apps/api/ClientApp/src/`.
-- Snapshot gateway and capture: `apps/api/Snapshots/`, `apps/snapshot-worker/`.
+- Snapshot gateway and capture: `apps/api/Snapshots/`, `apps/snapshot-worker/` (Go/chromedp). Run `go test ./...` from `apps/snapshot-worker/` when changing the worker.
 - Integration and browser coverage: `apps/api.tests/`, `tests/e2e/`; image generation: `scripts/generate-images.ts`.
 
 Preserve the Razor/React boundary and the catalog-edit/snapshot-invalidation transaction. Avoid putting personalized search, inquiry or admin state into public snapshots. Use the existing MVC controller and Razor patterns rather than introducing a second public router.

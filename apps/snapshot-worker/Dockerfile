@@ -1,24 +1,29 @@
-FROM node:26.10.0-bookworm-slim AS build
+FROM node:26.10.0-bookworm-slim AS assets
 RUN npm install --global pnpm@12.6.0
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
-COPY . .
+COPY apps/api/ClientApp ./apps/api/ClientApp
 RUN pnpm --dir apps/api/ClientApp exec vite build
 
-# The worker only launches headless Chromium; omit the full browser and other engines.
-FROM node:26.10.0-bookworm-slim
-ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+FROM golang:1.26.5-bookworm AS worker-build
+WORKDIR /repo/apps/snapshot-worker
+COPY apps/snapshot-worker/go.mod apps/snapshot-worker/go.sum ./
+RUN go mod download
+COPY apps/snapshot-worker/main.go apps/snapshot-worker/capture.go ./
+RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /snapshot-worker .
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends chromium ca-certificates fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-COPY --from=build /repo/node_modules ./node_modules
-RUN ./node_modules/.bin/playwright install --with-deps --only-shell chromium
-COPY --from=build /repo/package.json ./package.json
-COPY --from=build /repo/apps/api/wwwroot/assets ./apps/api/wwwroot/assets
-COPY --from=build /repo/apps/api/Pages ./apps/api/Pages
-COPY --from=build /repo/apps/api/Public ./apps/api/Public
-COPY --from=build /repo/apps/api/Assets ./apps/api/Assets
-COPY --from=build /repo/apps/api/Snapshots ./apps/api/Snapshots
-COPY --from=build /repo/apps/snapshot-worker ./apps/snapshot-worker
-ENV NODE_ENV=production \
-    SNAPSHOT_API_ORIGIN=http://api:8080
-CMD ["node", "apps/snapshot-worker/worker.mjs"]
+COPY --from=worker-build /snapshot-worker /app/snapshot-worker
+COPY --from=assets /repo/apps/api/wwwroot/assets ./apps/api/wwwroot/assets
+COPY apps/api/Pages ./apps/api/Pages
+COPY apps/api/Public ./apps/api/Public
+COPY apps/api/Assets ./apps/api/Assets
+COPY apps/snapshot-worker/go.mod apps/snapshot-worker/go.sum ./apps/snapshot-worker/
+COPY apps/api/Snapshots ./apps/api/Snapshots
+COPY apps/snapshot-worker/main.go apps/snapshot-worker/capture.go ./apps/snapshot-worker/
+ENV SNAPSHOT_API_ORIGIN=http://api:8080
+CMD ["/app/snapshot-worker"]

@@ -12,7 +12,7 @@ docker compose --env-file .env up --build -d
 
 `compose.yaml` points the worker's `SNAPSHOT_API_ORIGIN` at the internal API (`http://api:8080`), not the public origin. It binds API and PostgreSQL ports to localhost; configure public ingress separately. Block `/_snapshot-source` at that ingress as a second boundary; the app also requires `X-Snapshot-Token` and rejects unknown paths. Run the initial migration/seed and finish snapshot publication before directing production traffic to public pages. The compose startup does not run migrations or seed for you; run the repository's `pnpm db:migrate` and `pnpm db:seed` against the intended database, then let the continuous worker drain its queue. For a one-off drain, stop the continuous worker before running `pnpm snapshots:all`.
 
-Deploy API and worker images from the same source together. The worker rejects captures if its Vite manifest does not match the API. Rebuild the worker image when upgrading Playwright so the installed Chromium headless shell matches the pinned package. Local runs instead need `pnpm exec playwright install chromium`.
+Deploy API and worker images from the same source together. The worker rejects captures if its Vite manifest does not match the API. The Go worker image installs Debian Chromium and has no Node runtime or Playwright browser download. Keep the browser updated with the image, and install local Chrome or Chromium for `pnpm dev:snapshots`. Browser tests still use Playwright Chromium.
 
 ## Persistent state and recovery
 

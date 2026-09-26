@@ -6,8 +6,8 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "node apps/snapshot-worker/worker.mjs",
-        "cwd": "."
+        "command": "SNAPSHOT_REPO_ROOT=../.. go run .",
+        "cwd": "apps/snapshot-worker"
       },
       "cache": false,
       "continuous": true
@@ -15,8 +15,8 @@
     "publish": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "node apps/snapshot-worker/worker.mjs --once --drain",
-        "cwd": "."
+        "command": "SNAPSHOT_REPO_ROOT=../.. go run . --once --drain",
+        "cwd": "apps/snapshot-worker"
       },
       "cache": false
     }
