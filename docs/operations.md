@@ -86,7 +86,7 @@ Wait for republishing before measuring; verify `curl -s https://<your-tunnel-hos
 
 ## Persistent state and recovery
 
-Keep PostgreSQL data, uploaded media (`MEDIA_DIR`), Data Protection keys (`DATA_PROTECTION_KEYS_DIR`), and hashed assets across releases. Compose mounts `postgres_data`, `media_data`, `protection_keys`, and `asset_data`; the API uses `/data/media`, `/data/keys`, and `/data/assets`. Old hashed assets must remain available while stored or cached snapshots reference them; locally these are in `apps/api/wwwroot/assets`. The server reads the Vite manifest on startup, so restart it after an asset rebuild.
+Keep PostgreSQL data, uploaded media (`MEDIA_DIR`), Data Protection keys (`DATA_PROTECTION_KEYS_DIR`), and hashed assets across releases. Compose mounts `postgres_data`, `media_data`, `protection_keys`, and `asset_data`; the API uses `/data/media`, `/data/keys`, and `/data/assets`. Old hashed assets must remain available while stored or cached snapshots reference them; locally these are in `apps/web/wwwroot/assets`. The server reads the Vite manifest on startup, so restart it after an asset rebuild.
 
 `pnpm images` generates both browser image variants and `wwwroot/images/image-manifest.json`, which Razor uses for responsive catalog cards. Commit the manifest alongside new variants and deploy them together. Fingerprinted `/images/gen/` files cache for a year; original `/images/` paths cache for one day because editors may replace them without changing the URL. Public and admin CSS are separate build entries; rebuild the API and worker together before measuring changes to public snapshots.
 

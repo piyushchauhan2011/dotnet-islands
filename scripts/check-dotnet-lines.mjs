@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 
 const maxColumns = 100
-const roots = ['apps/api', 'apps/api.tests']
+const roots = ['apps/web', 'apps/web.tests']
 const excludedDirectories = new Set(['bin', 'obj', 'Migrations'])
 let checked = 0
 let violations = 0

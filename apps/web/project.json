@@ -1,0 +1,78 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "api",
+  "root": "apps/web",
+  "targets": {
+    "assets-build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/apps/web/wwwroot/assets"],
+      "options": { "command": "pnpm exec vite build", "cwd": "apps/web/ClientApp" }
+    },
+    "assets-dev": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm exec vite --host 0.0.0.0 --port 3000", "cwd": "apps/web/ClientApp" },
+      "cache": false,
+      "continuous": true
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "dotnet run --project apps/web/api.csproj --no-launch-profile -- --urls ${API_LISTEN_URL:-http://localhost:5000}",
+        "cwd": "."
+      },
+      "cache": false,
+      "continuous": true
+    },
+    "publish": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/apps/web/bin/publish"],
+      "options": {
+        "command": "dotnet publish apps/web/api.csproj --configuration Release --output apps/web/bin/publish",
+        "cwd": "."
+      }
+    },
+    "migrate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "dotnet run --project apps/web/api.csproj -- migrate",
+        "cwd": "."
+      },
+      "cache": false
+    },
+    "seed": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "dotnet run --project apps/web/api.csproj -- seed",
+        "cwd": "."
+      },
+      "cache": false
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm exec tsc --noEmit -p apps/web/ClientApp/tsconfig.json", "cwd": "." }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm exec oxlint apps/web/ClientApp/src apps/web/ClientApp/vite.config.ts", "cwd": "." }
+    },
+    "check": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm exec oxfmt --check apps/web/ClientApp/src apps/web/ClientApp/vite.config.ts", "cwd": "." }
+    },
+    "images": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm exec tsx scripts/generate-images.ts", "cwd": "." }
+    },
+    "storybook": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm exec storybook dev -c .storybook -p 6006", "cwd": "apps/web/ClientApp" },
+      "cache": false,
+      "continuous": true
+    },
+    "build-storybook": {
+      "executor": "nx:run-commands",
+      "options": { "command": "pnpm exec storybook build -c .storybook -o storybook-static", "cwd": "apps/web/ClientApp" },
+      "outputs": ["{workspaceRoot}/apps/web/ClientApp/storybook-static"]
+    }
+  }
+}

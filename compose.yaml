@@ -19,7 +19,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: apps/api/Dockerfile
+      dockerfile: apps/web/Dockerfile
     image: hotel-api:${RELEASE_VERSION:-local}
     restart: unless-stopped
     environment:

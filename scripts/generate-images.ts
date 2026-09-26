@@ -1,6 +1,6 @@
 /**
  * Generates responsive AVIF/WebP variants for every source image in
- * `apps/api/wwwroot/images/` and writes `apps/api/ClientApp/src/lib/image-manifest.ts`.
+ * `apps/web/wwwroot/images/` and writes `apps/web/ClientApp/src/lib/image-manifest.ts`.
  *
  * Variant filenames embed a content hash so they can be served with a long
  * `immutable` cache lifetime without ever going stale. Generated files are
@@ -14,9 +14,9 @@ import { join } from 'node:path'
 
 import sharp from 'sharp'
 
-const sourceDir = 'apps/api/wwwroot/images'
+const sourceDir = 'apps/web/wwwroot/images'
 const outputDir = join(sourceDir, 'gen')
-const manifestPath = 'apps/api/ClientApp/src/lib/image-manifest.ts'
+const manifestPath = 'apps/web/ClientApp/src/lib/image-manifest.ts'
 const serverManifestPath = join(sourceDir, 'image-manifest.json')
 const widths = [320, 420, 540, 672, 768, 960, 1120, 1280, 1600, 1920]
 

@@ -16,6 +16,6 @@ playwright-report
 test-results
 .lighthouseci
 /data
-apps/api/Data/media
-apps/api/Data/keys
-apps/api/wwwroot/assets
+apps/web/Data/media
+apps/web/Data/keys
+apps/web/wwwroot/assets

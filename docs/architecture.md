@@ -39,8 +39,8 @@ The worker does not render during visitor requests. Razor supplies empty island 
 
 ## Data and security boundaries
 
-- `apps/api/Pages/` and `apps/api/Public/` implement public Razor/API behavior; `apps/api/Snapshots/` gates snapshot responses. `apps/snapshot-worker/worker.mjs` captures and publishes.
-- `apps/api/Data/` and `apps/api/Migrations/` hold EF persistence; `apps/api/Admin/` handles admin APIs, catalog edits, media, and invalidation. `apps/api/ClientApp/src/islands/` contains public mounts; `src/admin/` contains the admin SPA.
+- `apps/web/Pages/` and `apps/web/Public/` implement public Razor/API behavior; `apps/web/Snapshots/` gates snapshot responses. `apps/snapshot-worker/worker.mjs` captures and publishes.
+- `apps/web/Data/` and `apps/web/Migrations/` hold EF persistence; `apps/web/Admin/` handles admin APIs, catalog edits, media, and invalidation. `apps/web/ClientApp/src/islands/` contains public mounts; `src/admin/` contains the admin SPA.
 - Admin login uses a 12-hour HttpOnly SameSite cookie with persistent Data Protection keys. Protected APIs recheck the cookie user against the database and require double-submit CSRF for writes.
 - The source route requires `X-Snapshot-Token` matching `SNAPSHOT_INTERNAL_TOKEN` and rejects unknown paths. Keep that route inaccessible at the public ingress too. Media originals and generated WebP variants live under `MEDIA_DIR`; persist the directory with the database.
 
