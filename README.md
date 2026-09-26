@@ -26,4 +26,4 @@ Open http://localhost:5000 after the worker publishes the initial snapshots. For
 - [Quick start](docs/quick-start.md) — setup, development modes, and first-run troubleshooting.
 - [Architecture](docs/architecture.md) — request ownership, snapshots, islands, and data flow.
 - [Contributing](docs/contributing.md) — code layout, checks, tests, and change boundaries.
-- [Operations](docs/operations.md) — deployment, persistence, security, and publication maintenance.
+- [Operations](docs/operations.md) — deployment, persistence, security, local DDEV HTTPS (`make https`), public PageSpeed tunnel (`make pagespeed`), and cleanup.

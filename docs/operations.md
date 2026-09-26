@@ -18,20 +18,32 @@ CI builds both container images to validate their Dockerfiles; it does not push 
 
 ## Local HTTPS Lighthouse audit (DDEV)
 
-The optional `.ddev` project is an HTTPS reverse proxy for the **published snapshot** app; it does not run the API or replace the repository's PostgreSQL. Complete the [quick start](quick-start.md) through seed, then start DDEV (`ddev start`). DDEV terminates TLS at its router and forwards through nginx to the host API at `host.docker.internal:5000`. Run the API and worker on the host in a separate terminal:
+The simplest local HTTPS flow, after the [quick start](quick-start.md), uses two terminals:
+
+```sh
+# Terminal 1: only if the API is not already running on port 5000
+make audit-app
+# Terminal 2: once /health responds on port 5000
+make https
+make lighthouse-https
+```
+
+`make audit-app` runs the host API and worker in the foreground with `PUBLIC_ORIGIN=https://hotel-ssr-audit.ddev.site` and `API_LISTEN_URL=http://0.0.0.0:5000`. Start PostgreSQL first as in the quick start. If Compose already runs the API and worker, do **not** start a second API: `make https` proxies the existing port 5000. To publish correct HTTPS canonical URLs with Compose, set `PUBLIC_ORIGIN=https://hotel-ssr-audit.ddev.site` in `.env`, then recreate API and worker with `docker compose --env-file .env up -d --no-deps --force-recreate api snapshot-worker`.
+
+The optional `.ddev` project is an HTTPS reverse proxy for the **published snapshot** app; it does not run the API or replace the repository's PostgreSQL. DDEV terminates TLS at its router and forwards through nginx to the host API at `host.docker.internal:5000`. The equivalent manual host command is:
 
 ```sh
 PUBLIC_ORIGIN=https://hotel-ssr-audit.ddev.site API_LISTEN_URL=http://0.0.0.0:5000 pnpm dev:snapshots
 ```
 
-Wait for the first snapshot publications (or the origin-change republish of existing snapshots) before auditing. The worker fingerprints `PUBLIC_ORIGIN` so a restart with the HTTPS origin queues previously published pages for regeneration; until it finishes, old HTML can still contain `http://localhost:5000` canonical links. The API must bind beyond loopback to be reachable from DDEV's container; `0.0.0.0:5000` also exposes it to your LAN unless a host firewall blocks it. Use only on a trusted local network; stop the process afterward. The nginx proxy returns 404 for `/_snapshot-source` and does not cache or bundle CSS/JS. Do not use Vite HMR mode for these measurements: its development assets and localhost URLs are not representative.
+Wait for the first snapshot publications (or the origin-change republish of existing snapshots) before auditing. The worker fingerprints `PUBLIC_ORIGIN` so a restart with the HTTPS origin queues previously published pages for regeneration; until it finishes, old HTML can still contain the previous canonical links. The host API must bind beyond loopback to be reachable from DDEV's container; `0.0.0.0:5000` also exposes it to your LAN unless a host firewall blocks it. Use only on a trusted local network; stop the process afterward. The nginx proxy returns 404 for `/_snapshot-source` and does not cache or bundle CSS/JS. Do not use Vite HMR mode for these measurements: its development assets and localhost URLs are not representative.
 
 Verify the HTTPS endpoint and negotiated protocol before measuring (DDEV must have installed/trusted its local certificate):
 
 ```sh
 curl --fail --silent --show-error https://hotel-ssr-audit.ddev.site/health
 curl -s -o /dev/null -w '%{http_version}\n' --http2 https://hotel-ssr-audit.ddev.site/
-LIGHTHOUSE_ORIGIN=https://hotel-ssr-audit.ddev.site pnpm lighthouse
+make lighthouse-https
 ```
 
 The second command should report `2` for HTTP/2; avoid `-k` or Chrome certificate-ignoring flags, which change the audit. If local curl lacks HTTP/2 support, inspect the Protocol column in Chromium DevTools Network instead. DDEV's HTTPS endpoint does not imply HTTP/3: verify HTTP/3 separately with a QUIC-capable ingress/client before attributing any score difference to it. Lighthouse reports are written to `.lighthouseci/`. Compare repeated runs with the same machine, Chrome, page content, and Lighthouse settings; local proxy latency and certificate trust affect results. Without `LIGHTHOUSE_ORIGIN`, CI continues to audit `http://127.0.0.1:5000`.
@@ -45,6 +57,32 @@ pnpm exec lhci collect --url=https://hotel-ssr-audit.ddev.site/hotels/jayanagar-
 Compare its CLS and filmstrip with the same flags before/after a change; these values are not comparable to the default desktop CI scores or to a differently configured Brave/Chrome DevTools profile. An HTTP/2 connection multiplexes requests but cannot prevent layout shifts caused by client-side markup replacement.
 
 For a JavaScript waterfall audit, rebuild and restart the API **and** snapshot worker, then wait for republished snapshots: older HTML contains Vite-inserted `modulepreload` links captured during publication. The worker removes those hints from new snapshots. On the home page, the search form and menu still hydrate on load, so their React and component chunks are expected; the calendar loads on date-picker activation and the menu dialog only when opened. In DevTools, disable cache and compare requests before and after opening those controls; a preload is a network request, not proof that a chunk executed.
+
+## Public PageSpeed Insights audit (Cloudflare quick tunnel)
+
+PageSpeed Insights needs a publicly reachable URL; `.ddev.site` resolves locally and is not a public ingress to your machine. Install `cloudflared`, start the published-snapshot API and worker on port 5000 (quick start or Compose), then run in another terminal:
+
+```sh
+make pagespeed
+```
+
+The command checks `/health` and runs `cloudflared tunnel --no-autoupdate --protocol http2 --url http://127.0.0.1:5000` **in the foreground**. Copy the newly printed `https://...trycloudflare.com` URL into [PageSpeed Insights](https://pagespeed.web.dev/). DNS may take a minute to become available; check `curl --fail https://<your-tunnel-host>/health` and a public page/asset before submitting. `http2` selects the tunnel's outbound connection to Cloudflare; it does not establish which protocol a visitor negotiates with the Cloudflare edge.
+
+**The quick tunnel exposes the entire local API, including admin routes, to anyone with the URL.** It does not inherit DDEV's `/_snapshot-source` block (the app still requires its internal token). Use strong admin credentials and an isolated audit environment with non-sensitive content; do not treat this as production ingress or leave it running unattended. Quick tunnels are temporary, have no uptime guarantee, and receive a new hostname on restart.
+
+Published HTML stores absolute canonical URLs and the sitemap origin. If it was captured for localhost or DDEV, PageSpeed can still request the tunnel URL, but its canonical/sitemap metadata points elsewhere. For an audit of the final public metadata **with Compose**, keep `make pagespeed` running, then in a separate terminal set the **exact newly printed HTTPS URL** as `PUBLIC_ORIGIN` and recreate the API and worker:
+
+```sh
+PUBLIC_ORIGIN=https://<your-tunnel-host> docker compose --env-file .env up -d --no-deps --force-recreate api snapshot-worker
+```
+
+Wait for republishing before measuring; verify `curl -s https://<your-tunnel-host>/ | grep canonical` shows the tunnel origin. The worker fingerprints the origin and requeues previously published pages. A hostname change requires another republish. PageSpeed Insights runs from Google's infrastructure and may report different scores than `make lighthouse-https` (local Chrome and the repo's desktop preset).
+
+### Stop and restore
+
+- Press **Ctrl-C** in the `make pagespeed` terminal to close the tunnel. If it was started separately, stop that `cloudflared` process instead; do not rely on closing a browser tab. A background tunnel can be stopped by its PID (`kill <pid>`).
+- Press **Ctrl-C** in the `make audit-app` terminal to stop the host API/worker. Run `make https-stop` to stop DDEV; that does not stop the API or PostgreSQL.
+- If you temporarily changed Compose's origin, restore the desired `PUBLIC_ORIGIN` in `.env` (or use its prior value), then run `docker compose --env-file .env up -d --no-deps --force-recreate api snapshot-worker` and wait for republishing again. To stop Compose services without deleting database/media volumes, use `docker compose --env-file .env stop`. Do **not** use `down -v` unless you intend to delete persistent data.
 
 ## Persistent state and recovery
 
