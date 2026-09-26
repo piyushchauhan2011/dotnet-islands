@@ -34,7 +34,7 @@ func TestRenderPublishesSafeHydratableHTML(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	allocator, closeAllocator := chromedp.NewExecAllocator(context.Background(), chromedp.DefaultExecAllocatorOptions[:]...)
+	allocator, closeAllocator := chromedp.NewExecAllocator(context.Background(), browserOptions()...)
 	defer closeAllocator()
 	browser, closeBrowser := chromedp.NewContext(allocator)
 	defer closeBrowser()
@@ -69,7 +69,7 @@ func TestRenderRejectsNoncanonicalPage(t *testing.T) {
 		_, _ = w.Write([]byte(`<!doctype html><html><head><link rel="canonical" href="https://example.com/other"></head><body><h1>Wrong page</h1><script src="/assets/runtime.js"></script></body></html>`))
 	}))
 	defer server.Close()
-	allocator, closeAllocator := chromedp.NewExecAllocator(context.Background(), chromedp.DefaultExecAllocatorOptions[:]...)
+	allocator, closeAllocator := chromedp.NewExecAllocator(context.Background(), browserOptions()...)
 	defer closeAllocator()
 	browser, closeBrowser := chromedp.NewContext(allocator)
 	defer closeBrowser()

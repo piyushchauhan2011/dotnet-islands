@@ -14,6 +14,8 @@ docker compose --env-file .env up --build -d
 
 Deploy API and worker images from the same source together. The worker rejects captures if its Vite manifest does not match the API. The Go worker image installs Debian Chromium and has no Node runtime or Playwright browser download. Keep the browser updated with the image, and install local Chrome or Chromium for `pnpm dev:snapshots`. Browser tests still use Playwright Chromium.
 
+Chromium requires a usable OS sandbox for non-root workers. GitHub's Ubuntu browser runner disables unprivileged user namespaces, so that isolated CI job sets `SNAPSHOT_CHROME_NO_SANDBOX=1` for both capture tests and the worker. Root-run containers also launch Chromium without its sandbox. Do not set this override for a non-root deployment with a working sandbox; it removes a browser security boundary.
+
 ## Persistent state and recovery
 
 Keep PostgreSQL data, uploaded media (`MEDIA_DIR`), Data Protection keys (`DATA_PROTECTION_KEYS_DIR`), and hashed assets across releases. Compose mounts `postgres_data`, `media_data`, `protection_keys`, and `asset_data`; the API uses `/data/media`, `/data/keys`, and `/data/assets`. Old hashed assets must remain available while stored or cached snapshots reference them; locally these are in `apps/api/wwwroot/assets`. The server reads the Vite manifest on startup, so restart it after an asset rebuild.

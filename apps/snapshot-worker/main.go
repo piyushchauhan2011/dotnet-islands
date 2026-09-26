@@ -62,11 +62,7 @@ func run() error {
 		return err
 	}
 	defer pool.Close()
-	options := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
-	if os.Geteuid() == 0 {
-		options = append(options, chromedp.NoSandbox)
-	}
-	allocator, closeAllocator := chromedp.NewExecAllocator(ctx, options...)
+	allocator, closeAllocator := chromedp.NewExecAllocator(ctx, browserOptions()...)
 	defer closeAllocator()
 	browser, closeBrowser := chromedp.NewContext(allocator)
 	defer closeBrowser()
@@ -120,6 +116,14 @@ func run() error {
 		}
 	}
 	return nil
+}
+
+func browserOptions() []chromedp.ExecAllocatorOption {
+	options := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
+	if os.Geteuid() == 0 || os.Getenv("SNAPSHOT_CHROME_NO_SANDBOX") == "1" {
+		options = append(options, chromedp.NoSandbox)
+	}
+	return options
 }
 
 func loadEnv(path string) {

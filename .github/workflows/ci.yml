@@ -67,6 +67,8 @@ jobs:
       PUBLIC_ORIGIN: http://127.0.0.1:5000
       ASPNETCORE_ENVIRONMENT: Development
       ADMIN_EMAIL: admin@example.com
+      # Ubuntu runners restrict unprivileged user namespaces; only this isolated browser job opts out.
+      SNAPSHOT_CHROME_NO_SANDBOX: '1'
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v5
