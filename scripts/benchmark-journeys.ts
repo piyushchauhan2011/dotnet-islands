@@ -1,12 +1,12 @@
 #!/usr/bin/env -S pnpm exec tsx
-import {
-  chromium,
-  type Browser,
-  type BrowserContext,
-  type CDPSession,
-  type Locator,
-  type Page,
-  type Request,
+import { chromium } from 'playwright'
+import type {
+  Browser,
+  BrowserContext,
+  CDPSession,
+  Locator,
+  Page,
+  Request,
 } from 'playwright'
 import { z } from 'zod'
 import { createHash } from 'node:crypto'
@@ -75,7 +75,7 @@ type Condition = {
 }
 type Resource = {
   url: string
-  type: string
+  type: string | null
   encodedBytes: number | null
   complete: boolean
   phase: string | null
@@ -373,7 +373,7 @@ class Recorder {
       }
       const resource: Resource = {
         url: safeUrl(event.request.url),
-        type: event.type,
+        type: event.type ?? null,
         encodedBytes: null,
         complete: false,
         phase: this.currentPhase,
@@ -1441,7 +1441,7 @@ async function main() {
             // before observer setup (separate init script ordering is unspecified).
             await context.addInitScript({
               content:
-                'Object.defineProperty(globalThis, \"__name\", { value: (target, value) => Object.defineProperty(target, \"name\", { value, configurable: true }), configurable: true });' +
+                'Object.defineProperty(globalThis, "__name", { value: (target, value) => Object.defineProperty(target, "name", { value, configurable: true }), configurable: true });' +
                 `(${installObservers.toString()})();`,
             })
             const page = await context.newPage()

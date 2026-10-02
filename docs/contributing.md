@@ -30,6 +30,11 @@ pnpm test
 
 `pnpm build` restores NuGet packages before the .NET build. `pnpm test` runs .NET integration tests; `TEST_DATABASE_URL` must name a dedicated database ending `_test`. Tests create and remove a unique throwaway sibling database, not the configured application database. Keep PostgreSQL running for these tests.
 
+`pnpm typecheck` checks both the client project and repository TypeScript scripts.
+The root `tsconfig.json` gives scripts the same strict compiler settings and lets
+editors discover their project. `pnpm lint` also checks `scripts/*.ts`, including
+the benchmark runner.
+
 With a running, seeded snapshot-mode gateway and published snapshots, also run:
 
 ```sh
