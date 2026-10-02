@@ -1,4 +1,5 @@
-import { SlidersHorizontal } from 'lucide-react'
+/** @jsxImportSource preact */
+import { SlidersHorizontal } from 'lucide-preact'
 
 export type SearchFilters = {
   destination?: string | null

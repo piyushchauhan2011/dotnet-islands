@@ -1,5 +1,7 @@
-import { CalendarDays } from 'lucide-react'
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+/** @jsxImportSource preact */
+import { CalendarDays } from 'lucide-preact'
+import { lazy, Suspense } from 'preact/compat'
+import { useEffect, useRef, useState } from 'preact/hooks'
 
 const Calendar = lazy(async () => ({
   default: (await import('./Calendar')).default,
@@ -48,7 +50,13 @@ export function DatePicker({
   useEffect(() => {
     if (!open) return
     const pointer = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false)
+      if (!root.current?.contains(event.target as Node)) {
+        setOpen(false)
+        requestAnimationFrame(() => {
+          // Do not steal focus from a different control the visitor clicked.
+          if (document.activeElement === document.body) trigger.current?.focus()
+        })
+      }
     }
     const keyboard = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {

@@ -1,5 +1,7 @@
-import { Expand } from 'lucide-react'
-import { lazy, Suspense, useState } from 'react'
+/** @jsxImportSource preact */
+import { Expand } from 'lucide-preact'
+import { lazy, Suspense } from 'preact/compat'
+import { useState } from 'preact/hooks'
 import type { GalleryItem } from './GalleryLightbox'
 
 // Keep the full-screen gallery out of the initial island chunk; it is only needed after a visitor opens a photo.

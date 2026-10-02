@@ -30,5 +30,19 @@
     "react/static-components": "error",
     "react/unsupported-syntax": "error",
     "typescript/consistent-type-imports": "error"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["apps/web/ClientApp/src/islands/**/*.tsx"],
+      "rules": {
+        "react/globals": "off",
+        "react/immutability": "off",
+        "react/purity": "off",
+        "react/refs": "off",
+        "react/set-state-in-render": "off",
+        "react/static-components": "off",
+        "react/unsupported-syntax": "off"
+      }
+    }
+  ]
 }

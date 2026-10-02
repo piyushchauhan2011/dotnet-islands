@@ -9,7 +9,7 @@ public interface IAssetManifest
     {
         get;
     }
-    IReadOnlyList<string> RuntimeStyles
+    string RuntimeCss
     {
         get;
     }
@@ -33,7 +33,7 @@ public sealed class AssetManifest : IAssetManifest
     {
         get;
     }
-    public IReadOnlyList<string> RuntimeStyles
+    public string RuntimeCss
     {
         get;
     }
@@ -54,9 +54,9 @@ public sealed class AssetManifest : IAssetManifest
     {
         if (configuration["ASSET_MODE"] == "vite" && environment.IsDevelopment())
         {
-            RuntimeScript = "http://localhost:3000/src/islands/runtime.tsx";
-            RuntimeStyles = [];
-            AdminScript = "http://localhost:3000/src/admin/main.tsx";
+            RuntimeScript = "http://localhost:3000/assets/src/islands/runtime.tsx";
+            RuntimeCss = "";
+            AdminScript = "http://localhost:3000/assets/src/admin/main.tsx";
             AdminStyles = [];
             AssetVersion = "vite-development";
             return;
@@ -72,7 +72,11 @@ public sealed class AssetManifest : IAssetManifest
         AssetVersion = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
         using var document = JsonDocument.Parse(bytes);
         RuntimeScript = AssetUrl(document.RootElement.GetProperty("src/islands/runtime.tsx"));
-        RuntimeStyles = ResolveStyles(document.RootElement, "src/islands/runtime.tsx");
+        // Cache the independent public CSS entry once; calendar CSS stays lazy.
+        var stylesheet = document.RootElement.GetProperty("src/styles.scss");
+        RuntimeCss = File.ReadAllText(Path.Combine(webRoot, "assets",
+            stylesheet.GetProperty("file").GetString()!))
+            .Replace("</style", "<\\/style", StringComparison.OrdinalIgnoreCase);
         AdminStyles = document.RootElement.TryGetProperty("src/admin/main.tsx", out _)
             ? ResolveStyles(document.RootElement, "src/admin/main.tsx") : [];
         AdminScript = document.RootElement.TryGetProperty("src/admin/main.tsx", out var admin)

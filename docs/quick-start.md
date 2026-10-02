@@ -40,6 +40,6 @@ For live Razor development and Vite HMR, instead run:
 pnpm dev
 ```
 
-The .NET app runs at http://localhost:5000 and Vite serves assets at http://localhost:3000. Vite is not a separate public app or router. This mode does not require the snapshot worker. If you rebuild assets while the .NET server is already running in snapshot mode, restart the server to reload its manifest. Keep previous hashed assets while existing snapshots reference them.
+The .NET app runs at http://localhost:5000 and Vite serves assets under http://localhost:3000/assets/. Public islands use Preact; only the admin loads the Vite React refresh preamble and React runtime. Vite is not a separate public app or router. This mode does not require the snapshot worker. If you rebuild assets while the .NET server is already running in snapshot mode, restart the server to reload its manifest. Keep previous hashed assets while existing snapshots reference them.
 
 If a newly published URL remains 503, check the worker log and snapshot job table: failed captures back off and never publish partial HTML. See [Operations](operations.md) for deployment and recovery notes.

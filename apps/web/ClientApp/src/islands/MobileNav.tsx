@@ -1,5 +1,7 @@
-import { ChevronRight, Menu, Search, X } from 'lucide-react'
-import { lazy, Suspense, useEffect, useState } from 'react'
+/** @jsxImportSource preact */
+import { ChevronRight, Menu, Search, X } from 'lucide-preact'
+import { lazy, Suspense } from 'preact/compat'
+import { useEffect, useState } from 'preact/hooks'
 
 // The modal implementation is only needed after opening the mobile menu.
 const IslandDialog = lazy(async () => ({

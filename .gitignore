@@ -15,6 +15,7 @@ storybook-static/
 playwright-report/
 test-results/
 .lighthouseci/
+benchmark-results/
 apps/web/wwwroot/assets/
 
 # Persistent local data; generated responsive public images stay tracked.

@@ -1,7 +1,12 @@
-import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+/** @jsxImportSource preact */
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-preact'
 import { DayPicker } from 'react-day-picker'
-import type { ComponentProps } from 'react'
+import type { DayPickerProps } from 'react-day-picker'
+import type { FunctionComponent } from 'preact'
 import 'react-day-picker/style.css'
+
+const CompatibleDayPicker =
+  DayPicker as unknown as FunctionComponent<DayPickerProps>
 
 export default function Calendar({
   selected,
@@ -9,11 +14,11 @@ export default function Calendar({
   disabled,
 }: {
   selected?: Date
-  disabled?: ComponentProps<typeof DayPicker>['disabled']
+  disabled?: DayPickerProps['disabled']
   onSelect: (date: Date | undefined) => void
 }) {
   return (
-    <DayPicker
+    <CompatibleDayPicker
       mode="single"
       selected={selected}
       disabled={disabled}

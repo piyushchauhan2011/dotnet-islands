@@ -1,6 +1,6 @@
 # Elsewhere hotel catalog
 
-An ASP.NET Core 10 hotel catalog with Razor Pages for public content, React islands for interactive controls, and a protected React admin. A Playwright worker publishes public HTML snapshots to PostgreSQL; visitors do not wait for browser rendering. Booking is an **inquiry**, not a reservation or payment.
+An ASP.NET Core 10 hotel catalog with Razor Pages for public content, native Preact 11 islands for interactive controls, and a protected React admin. A Playwright worker publishes public HTML snapshots to PostgreSQL; visitors do not wait for browser rendering. Booking is an **inquiry**, not a reservation or payment.
 
 ## Start here
 

@@ -1,6 +1,7 @@
-import { CheckCircle2, ShieldCheck } from 'lucide-react'
-import { useState } from 'react'
-import type { FormEvent } from 'react'
+/** @jsxImportSource preact */
+import { CheckCircle2, ShieldCheck } from 'lucide-preact'
+import { useState } from 'preact/hooks'
+import type { TargetedEvent } from 'preact'
 import { DatePicker } from './DatePicker'
 
 type Field =
@@ -33,7 +34,7 @@ export default function InquiryForm({ hotel, room, offer }: InquiryFormProps) {
   const today = new Date()
   const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  async function submit(event: TargetedEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending) return
     setError('')

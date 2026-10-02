@@ -1,5 +1,6 @@
-import { MapPin, Search, Users } from 'lucide-react'
-import { useState } from 'react'
+/** @jsxImportSource preact */
+import { MapPin, Search, Users } from 'lucide-preact'
+import { useState } from 'preact/hooks'
 import { DatePicker } from './DatePicker'
 
 export type SearchInitial = {
