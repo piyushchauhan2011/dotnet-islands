@@ -1,7 +1,70 @@
+import { randomUUID } from 'node:crypto'
 import { expect, test } from '@playwright/test'
+import { AdminPage } from './pages/admin'
 import { HotelPage } from './pages/hotel'
 import { InquiryPage } from './pages/inquiry'
 import { OfferPage } from './pages/offer'
+
+// This file includes authenticated inquiry proof; never retain credential artifacts.
+test.use({ trace: 'off', screenshot: 'off', video: 'off' })
+
+function futureStayDates() {
+  const today = new Date()
+  const iso = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+  const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+  const date = (day: number) =>
+    iso(new Date(nextMonth.getFullYear(), nextMonth.getMonth(), day))
+  const yesterday = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() - 1,
+  )
+  return {
+    previousMonthNeeded: today.getDate() === 1,
+    yesterday: iso(yesterday),
+    beforeCheckIn: date(9),
+    checkIn: date(10),
+    checkOut: date(12),
+    laterCheckOut: date(13),
+    monthLabel: new Intl.DateTimeFormat('en-US', {
+      month: 'long',
+      year: 'numeric',
+    }).format(nextMonth),
+  }
+}
+
+function calendarDay(inquiry: InquiryPage, date: string) {
+  return inquiry.calendar.locator(`[data-day="${date}"]:not([data-month])`)
+}
+
+async function openNextMonth(
+  inquiry: InquiryPage,
+  field: 'Check in' | 'Check out',
+  monthLabel: string,
+) {
+  await inquiry.page.getByRole('button', { name: field, exact: true }).click()
+  await expect(inquiry.calendar).toBeVisible()
+  await inquiry.calendar
+    .getByRole('button', { name: 'Go to the Next Month', exact: false })
+    .click()
+  await expect(inquiry.calendar.getByRole('status')).toHaveText(monthLabel)
+}
+
+async function selectFutureStay(inquiry: InquiryPage) {
+  const dates = await inquiry.page.evaluate(futureStayDates)
+  await openNextMonth(inquiry, 'Check in', dates.monthLabel)
+  await calendarDay(inquiry, dates.checkIn).getByRole('button').click()
+  await expect(inquiry.page.locator('input[name="checkIn"]')).toHaveValue(
+    dates.checkIn,
+  )
+  await openNextMonth(inquiry, 'Check out', dates.monthLabel)
+  await calendarDay(inquiry, dates.checkOut).getByRole('button').click()
+  await expect(inquiry.page.locator('input[name="checkOut"]')).toHaveValue(
+    dates.checkOut,
+  )
+  return dates
+}
 
 test('hotel detail presents gallery, room choices and useful sections without dead space', async ({
   page,
@@ -177,4 +240,343 @@ test('room inquiry keeps its stay context beside the form and stacks on mobile',
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
     390,
   )
+})
+
+test('room inquiry calendar preserves dates, disabled bounds and dismissal focus', async ({
+  page,
+}) => {
+  const inquiry = new InquiryPage(page)
+  await inquiry.gotoRoomInquiry()
+  const dates = await page.evaluate(futureStayDates)
+  const checkInTrigger = page.getByRole('button', {
+    name: 'Check in',
+    exact: true,
+  })
+  const checkOutTrigger = page.getByRole('button', {
+    name: 'Check out',
+    exact: true,
+  })
+  const checkIn = page.locator('input[name="checkIn"]')
+  const checkOut = page.locator('input[name="checkOut"]')
+  let submissions = 0
+  await page.route('**/api/inquiries', async (route) => {
+    submissions++
+    await route.abort()
+  })
+
+  await inquiry.openCheckInCalendar()
+  await expect(inquiry.calendar).toBeVisible()
+  await expect(checkInTrigger).toHaveAttribute('aria-expanded', 'true')
+  if (dates.previousMonthNeeded) {
+    await inquiry.calendar
+      .getByRole('button', { name: 'Go to the Previous Month', exact: false })
+      .click()
+  }
+  await expect(calendarDay(inquiry, dates.yesterday)).toHaveAttribute(
+    'data-disabled',
+    'true',
+  )
+  await expect(
+    calendarDay(inquiry, dates.yesterday).getByRole('button'),
+  ).toBeDisabled()
+  if (dates.previousMonthNeeded) {
+    await inquiry.calendar
+      .getByRole('button', { name: 'Go to the Next Month', exact: false })
+      .click()
+  }
+  await inquiry.calendar
+    .getByRole('button', { name: 'Go to the Next Month', exact: false })
+    .click()
+  await expect(inquiry.calendar.getByRole('status')).toHaveText(
+    dates.monthLabel,
+  )
+  await calendarDay(inquiry, dates.beforeCheckIn).getByRole('button').focus()
+  await page.keyboard.press('ArrowRight')
+  await expect(
+    calendarDay(inquiry, dates.checkIn).getByRole('button'),
+  ).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(inquiry.calendar).toBeHidden()
+  await expect(checkIn).toHaveValue(dates.checkIn)
+  await expect(checkInTrigger).toBeFocused()
+
+  await openNextMonth(inquiry, 'Check in', dates.monthLabel)
+  await expect(calendarDay(inquiry, dates.checkIn)).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await expect(checkIn).toHaveValue(dates.checkIn)
+  await inquiry.dismissCalendar()
+  await expect(inquiry.calendar).toBeHidden()
+  await expect(checkInTrigger).toHaveAttribute('aria-expanded', 'false')
+  await expect(checkInTrigger).toBeFocused()
+
+  await openNextMonth(inquiry, 'Check out', dates.monthLabel)
+  for (const date of [dates.beforeCheckIn, dates.checkIn]) {
+    await expect(calendarDay(inquiry, date)).toHaveAttribute(
+      'data-disabled',
+      'true',
+    )
+    await expect(calendarDay(inquiry, date).getByRole('button')).toBeDisabled()
+  }
+  await expect(
+    calendarDay(inquiry, dates.checkOut).getByRole('button'),
+  ).toBeEnabled()
+  await calendarDay(inquiry, dates.checkOut).getByRole('button').click()
+  await expect(checkOut).toHaveValue(dates.checkOut)
+  await expect(inquiry.calendar).toBeHidden()
+  await expect(checkOutTrigger).toBeFocused()
+
+  await openNextMonth(inquiry, 'Check out', dates.monthLabel)
+  await expect(calendarDay(inquiry, dates.checkOut)).toHaveAttribute(
+    'aria-selected',
+    'true',
+  )
+  await inquiry.heading.click()
+  await expect(inquiry.calendar).toBeHidden()
+  await expect(checkOutTrigger).toHaveAttribute('aria-expanded', 'false')
+  await expect(checkOutTrigger).toBeFocused()
+  await expect(checkOut).toHaveValue(dates.checkOut)
+
+  await openNextMonth(inquiry, 'Check in', dates.monthLabel)
+  await calendarDay(inquiry, dates.checkOut).getByRole('button').click()
+  await expect(checkIn).toHaveValue(dates.checkOut)
+  await expect(checkOut).toHaveValue('')
+  await expect(checkInTrigger).toBeFocused()
+  await openNextMonth(inquiry, 'Check out', dates.monthLabel)
+  await expect(
+    calendarDay(inquiry, dates.checkOut).getByRole('button'),
+  ).toBeDisabled()
+  await expect(
+    calendarDay(inquiry, dates.laterCheckOut).getByRole('button'),
+  ).toBeEnabled()
+  await inquiry.dismissCalendar()
+  await expect(checkOutTrigger).toBeFocused()
+  await inquiry.fillContactDetails('Calendar Guest', 'calendar@example.test')
+  await inquiry.submit()
+  await expect(
+    page.getByText('Check-out must be after check-in.'),
+  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Send inquiry' })).toBeEnabled()
+  expect(submissions).toBe(0)
+})
+
+test('inquiry API field errors are accessible and allow another submission', async ({
+  page,
+}) => {
+  const inquiry = new InquiryPage(page)
+  await inquiry.gotoRoomInquiry()
+  await selectFutureStay(inquiry)
+  await inquiry.fillContactDetails('Field Error Guest', 'field@example.test')
+  let attempts = 0
+  let releaseResponse!: () => void
+  let responseReceived!: () => void
+  const received = new Promise<void>((resolve) => {
+    responseReceived = resolve
+  })
+  const responseGate = new Promise<void>((resolve) => {
+    releaseResponse = resolve
+  })
+  await page.route('**/api/inquiries', async (route) => {
+    attempts++
+    responseReceived()
+    await responseGate
+    await route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        fieldErrors: {
+          email: ['Enter a valid email address'],
+          checkOut: ['Check-out must be after check-in'],
+          roomId: ['Room is not available at this hotel'],
+        },
+      }),
+    })
+  })
+
+  await inquiry.submit()
+  await received
+  await expect(page.getByRole('button', { name: 'Sending…' })).toBeDisabled()
+  releaseResponse()
+  const email = page.getByLabel('Email', { exact: true })
+  await expect(email).toHaveAttribute('aria-invalid', 'true')
+  await expect(email).toHaveAccessibleDescription('Enter a valid email address')
+  await expect(page.getByText('Enter a valid email address')).toBeVisible()
+  await expect(
+    page.getByText('Check-out must be after check-in', { exact: true }),
+  ).toBeVisible()
+  await expect(page.getByRole('alert')).toHaveText(
+    'Room is not available at this hotel',
+  )
+  await expect(page.getByRole('button', { name: 'Send inquiry' })).toBeEnabled()
+  await email.fill('corrected@example.test')
+  const [retry, failedResponse] = await Promise.all([
+    page.waitForRequest(
+      (request) =>
+        new URL(request.url()).pathname === '/api/inquiries' &&
+        request.method() === 'POST',
+    ),
+    page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/inquiries' &&
+        response.request().method() === 'POST',
+    ),
+    inquiry.submit(),
+  ])
+  expect(retry.postDataJSON().email).toBe('corrected@example.test')
+  expect(failedResponse.status()).toBe(400)
+  await expect(page.getByRole('button', { name: 'Send inquiry' })).toBeEnabled()
+  await expect(page.getByText('Enter a valid email address')).toBeVisible()
+  await expect(page.locator('.inquiry-page__success')).toHaveCount(0)
+  expect(attempts).toBe(2)
+})
+
+test.describe('disposable integration catalog inquiry', () => {
+  test.describe.configure({ retries: 0 })
+
+  test('successful room inquiry appears with its reference in the authenticated inbox', async ({
+    page,
+  }) => {
+    if (process.env.E2E_DISPOSABLE_CATALOG !== '1') {
+      throw new Error(
+        'E2E_DISPOSABLE_CATALOG=1 is required for a real inquiry in a disposable integration catalog',
+      )
+    }
+    const email = process.env.ADMIN_EMAIL
+    const password = process.env.ADMIN_PASSWORD
+    if (!email || !password) {
+      throw new Error(
+        'ADMIN_EMAIL and ADMIN_PASSWORD are required for authenticated inbox verification',
+      )
+    }
+    const admin = new AdminPage(page)
+    await admin.openLogin()
+    await admin.signIn(email, password)
+    await expect(page).toHaveURL(/\/admin$/)
+    await expect(admin.dashboardStats).toBeVisible()
+
+    const inquiry = new InquiryPage(page)
+    await inquiry.gotoRoomInquiry()
+    const dates = await selectFutureStay(inquiry)
+    const unique = randomUUID()
+    const guest = {
+      name: `Integration Guest ${unique}`,
+      email: `inquiry-${unique}@example.test`,
+      phone: '+1 202 555 0147',
+      message: `Disposable room inquiry ${unique}`,
+    }
+    await inquiry.fillContactDetails(guest.name, guest.email)
+    await page.getByLabel('Phone, optional').fill(guest.phone)
+    await page.getByLabel('Anything we should know?').fill(guest.message)
+    await page.getByLabel('Adults', { exact: true }).selectOption('3')
+    await page.getByLabel('Children', { exact: true }).selectOption('1')
+    let submissions = 0
+    page.on('request', (request) => {
+      if (
+        new URL(request.url()).pathname === '/api/inquiries' &&
+        request.method() === 'POST'
+      )
+        submissions++
+    })
+    const [submitted, response] = await Promise.all([
+      page.waitForRequest(
+        (request) =>
+          new URL(request.url()).pathname === '/api/inquiries' &&
+          request.method() === 'POST',
+      ),
+      page.waitForResponse(
+        (response) =>
+          new URL(response.url()).pathname === '/api/inquiries' &&
+          response.request().method() === 'POST',
+      ),
+      inquiry.submit(),
+    ])
+    expect(submitted.postDataJSON()).toEqual({
+      hotelId: 'hotel-bengaluru-jayanagar',
+      roomId: 'hotel-bengaluru-female-dorm',
+      checkIn: dates.checkIn,
+      checkOut: dates.checkOut,
+      adults: 3,
+      children: 1,
+      ...guest,
+      website: '',
+    })
+    expect(response.status()).toBe(200)
+    const result = (await response.json()) as {
+      id: string
+      reference: string
+    }
+    expect(result.id).toMatch(
+      /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/,
+    )
+    expect(result.reference).toBe(result.id.slice(0, 8).toUpperCase())
+    const confirmation = page.getByRole('status')
+    await expect(confirmation).toContainText('INQUIRY RECEIVED')
+    await expect(confirmation.locator('strong')).toHaveText(result.reference)
+    await expect(confirmation).toContainText(
+      'This is an inquiry, not a confirmed reservation. No payment has been taken.',
+    )
+    expect(submissions).toBe(1)
+
+    await admin.openAdmin()
+    await expect(admin.dashboardStats).toBeVisible()
+    await admin.openInquiries()
+    await expect(admin.guestInquiriesHeading).toBeVisible()
+    const row = admin.tableRows.filter({
+      has: page.getByText(result.id, { exact: true }),
+    })
+    await expect(row).toHaveCount(1)
+    await expect(row).toContainText(guest.name)
+    await expect(row).toContainText('Jayanagar Common House')
+    await expect(row).toContainText(`${dates.checkIn} – ${dates.checkOut}`)
+    await expect(row.getByRole('link', { name: guest.email })).toHaveAttribute(
+      'href',
+      `mailto:${encodeURIComponent(guest.email)}`,
+    )
+    await expect(row).toContainText(guest.phone)
+    await expect(row).toContainText(guest.message)
+    await expect(row.getByRole('combobox')).toHaveValue('new')
+
+    const dashboardResponse = await page.request.get('/api/admin/dashboard')
+    expect(dashboardResponse.status()).toBe(200)
+    const dashboard = (await dashboardResponse.json()) as {
+      inquiries: {
+        inquiry: {
+          id: string
+          hotelId: string
+          roomId: string
+          checkIn: string
+          checkOut: string
+          adults: number
+          children: number
+          name: string
+          email: string
+          phone: string
+          message: string
+          status: string
+        }
+        hotelName: string
+      }[]
+    }
+    const saved = dashboard.inquiries.filter(
+      ({ inquiry: record }) => record.id === result.id,
+    )
+    expect(saved).toHaveLength(1)
+    expect(saved[0]).toMatchObject({
+      hotelName: 'Jayanagar Common House',
+      inquiry: {
+        id: result.id,
+        hotelId: 'hotel-bengaluru-jayanagar',
+        roomId: 'hotel-bengaluru-female-dorm',
+        checkIn: dates.checkIn,
+        checkOut: dates.checkOut,
+        adults: 3,
+        children: 1,
+        ...guest,
+        status: 'new',
+      },
+    })
+    await admin.signOut()
+    await expect(page).toHaveURL(/\/admin\/login$/)
+  })
 })

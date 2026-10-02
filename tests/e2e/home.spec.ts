@@ -1,28 +1,74 @@
+import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 import { DestinationPage } from './pages/destination'
 import { HomePage } from './pages/home'
 
 test('home page fetches the mobile dialog only after opening the menu', async ({
   page,
+  baseURL,
 }) => {
   await page.setViewportSize({ width: 393, height: 852 })
+  const manifest = JSON.parse(
+    await readFile(
+      new URL('../../apps/web/wwwroot/assets/manifest.json', import.meta.url),
+      'utf8',
+    ),
+  ) as Record<string, { file: string }>
+  const dialogUrl = new URL(
+    `/assets/${manifest['src/islands/IslandDialog.tsx'].file}`,
+    baseURL,
+  ).href
   const dialogRequests: string[] = []
-  page.on('request', (request) => {
-    if (/\/IslandDialog-[^/]+\.js$/.test(new URL(request.url()).pathname))
-      dialogRequests.push(request.url())
+  let releaseDialog!: () => void
+  const dialogGate = new Promise<void>((resolve) => {
+    releaseDialog = resolve
   })
-  const home = new HomePage(page)
-  await home.open()
-  await expect(home.searchForm).toBeVisible()
-  expect(dialogRequests).toHaveLength(0)
+  await page.route(
+    (url) => url.href === dialogUrl,
+    async (route) => {
+      dialogRequests.push(route.request().url())
+      await dialogGate
+      await route.continue()
+    },
+  )
+  try {
+    const home = new HomePage(page)
+    await home.open()
+    await expect(home.searchForm).toBeVisible()
+    await expect(home.mobileDialog).toHaveCount(0)
+    expect(dialogRequests).toEqual([])
 
-  const menu = page.getByRole('button', { name: 'Open navigation' })
-  await home.openMenu()
-  await expect(home.mobileDialog).toBeVisible()
-  expect(dialogRequests).toHaveLength(1)
-  await home.closeMenu()
-  await expect(home.mobileDialog).not.toBeVisible()
-  await expect(menu).toBeFocused()
+    const menu = page.getByRole('button', { name: 'Open navigation' })
+    await home.openMenu()
+    await expect.poll(() => dialogRequests).toEqual([dialogUrl])
+    await expect(menu).toHaveAttribute('aria-expanded', 'true')
+    await expect(home.mobileDialog).toHaveCount(0)
+    releaseDialog()
+    await expect(home.mobileDialog).toHaveCount(1)
+    await expect(home.mobileDialog).toBeVisible()
+    await home.closeMenu()
+    await expect(home.mobileDialog).not.toBeVisible()
+    await expect(menu).toHaveAttribute('aria-expanded', 'false')
+    await expect(menu).toBeFocused()
+
+    await home.openMenu()
+    await expect(home.mobileDialog).toHaveCount(1)
+    await expect(home.mobileDialog).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(home.mobileDialog).not.toBeVisible()
+    await expect(menu).toHaveAttribute('aria-expanded', 'false')
+    await expect(menu).toBeFocused()
+
+    await home.openMenu()
+    await expect(home.mobileDialog).toHaveCount(1)
+    await expect(home.mobileDialog).toBeVisible()
+    await home.closeMenu()
+    await expect(home.mobileDialog).not.toBeVisible()
+    await expect(menu).toBeFocused()
+    expect(dialogRequests).toEqual([dialogUrl])
+  } finally {
+    releaseDialog()
+  }
 })
 
 test('home cards fill their frames and the overlay header gains contrast after scroll', async ({

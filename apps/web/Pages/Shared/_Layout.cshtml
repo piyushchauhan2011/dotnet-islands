@@ -32,9 +32,16 @@
     }
     <meta name="robots" content="@(admin ? "noindex,nofollow" : currentPage!.Robots)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    @foreach (var stylesheet in admin ? Assets.AdminStyles : Assets.RuntimeStyles)
+    @if (admin)
     {
-        <link rel="stylesheet" href="@stylesheet" />
+        foreach (var stylesheet in Assets.AdminStyles)
+        {
+            <link rel="stylesheet" href="@stylesheet" />
+        }
+    }
+    else if (Assets.RuntimeCss.Length > 0)
+    {
+        <style>@Html.Raw(Assets.RuntimeCss)</style>
     }
     @if (currentPage?.JsonLd is not null)
     {
@@ -118,6 +125,16 @@
     </footer>
     @if (admin)
     {
+        @if (Assets.AssetVersion == "vite-development")
+        {
+            <script type="module">
+                import RefreshRuntime from 'http://localhost:3000/assets/@@react-refresh';
+                RefreshRuntime.injectIntoGlobalHook(window);
+                window.$RefreshReg$ = () => {};
+                window.$RefreshSig$ = () => (type) => type;
+                window.__vite_plugin_react_preamble_installed__ = true;
+            </script>
+        }
         <script type="module" src="@Assets.AdminScript"></script>
     }
     else

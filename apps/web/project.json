@@ -53,7 +53,7 @@
     },
     "lint": {
       "executor": "nx:run-commands",
-      "options": { "command": "pnpm exec oxlint apps/web/ClientApp/src apps/web/ClientApp/vite.config.ts", "cwd": "." }
+      "options": { "command": "pnpm exec oxlint apps/web/ClientApp/src apps/web/ClientApp/vite.config.ts scripts/*.ts", "cwd": "." }
     },
     "check": {
       "executor": "nx:run-commands",

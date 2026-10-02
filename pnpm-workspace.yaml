@@ -8,3 +8,7 @@ allowBuilds:
   nx: true
   sharp: true
   unrs-resolver: true
+
+peerDependencyRules:
+  allowedVersions:
+    'lucide-preact>preact': '11.0.0'

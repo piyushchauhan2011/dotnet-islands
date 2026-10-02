@@ -7,12 +7,27 @@ One ASP.NET Core application owns public Razor Pages, JSON APIs, static assets, 
 | Surface | Implementation | Delivery policy |
 | --- | --- | --- |
 | `/`, `/destinations`, destination/hotel/offer pages, `/blog`, posts, bare `/search` | Razor page, then PostgreSQL Chromium snapshot | Canonical public HTML; 60-second public cache plus revalidation |
-| `/search?...` | Razor results and independent React filters | Live, private/no-store; `noindex,follow` |
-| `/inquire?hotel=...` | Razor stay context and React form | Private/no-store, noindex; CSRF-protected submission |
+| `/search?...` | Razor results and independent Preact filters | Live, private/no-store; `noindex,follow` |
+| `/inquire?hotel=...` | Razor stay context and Preact form | Private/no-store, noindex; CSRF-protected submission |
 | `/admin/login`, `/admin/*` | Razor document guard and admin-root React Router | Private/no-store, noindex; protected MVC APIs |
 | `/api/*`, `/media/{id}/{variant}` | Attribute-routed MVC controllers | JSON or allowlisted image variants |
 
-Razor owns the article and catalog content, hero/cards, metadata, canonical URL and JSON-LD. React mounts only the interactive public islands (search/date controls, mobile navigation, gallery, inquiry form); it does not route public pages. Search results, sort/pagination GET forms and catalog content remain available without JavaScript; island controls require it. The admin SPA alone uses React Router, including Back/Forward navigation; login, logout and expired sessions replace the document so the Razor guard runs again.
+Razor owns the article and catalog content, hero/cards, metadata, canonical URL and JSON-LD. Native Preact 11 mounts/hydrates only the interactive public islands (search/date controls, mobile navigation, gallery, inquiry form); it does not route public pages. Search results, sort/pagination GET forms and catalog content remain available without JavaScript; island controls require it. The admin SPA alone uses React Router, including Back/Forward navigation; login, logout and expired sessions replace the document so the Razor guard runs again.
+
+One Vite build preserves the public/admin manifest entries and server asset contract.
+Public hooks, JSX, rendering and icons use Preact; lazy/Suspense use `preact/compat`.
+Only imports of exact `react` from `react-day-picker` resolve to `preact/compat`;
+development excludes that package from prebundling. React, React DOM, Router,
+Tiptap and compiler remain isolated to admin. Storybook and its design-system
+components retain React JSX defaults. The narrow lucide-preact peer exception
+accepts Preact 11 without installing a second Preact runtime.
+
+Public production CSS has its own Vite `src/styles.scss` entry, independent of the
+island JavaScript graph. `AssetManifest` reads it once at startup; Razor embeds it
+in `<head>`, and the worker preserves it in published snapshots. This prevents
+lazy island imports from requesting the already-inline stylesheet. Calendar CSS
+stays lazy, admin CSS stays external, and development imports public CSS through
+Vite for HMR. Bundle reports include the separate public CSS entry in page totals.
 
 ## Publication flow
 

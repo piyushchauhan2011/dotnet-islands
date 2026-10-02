@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react'
-import type { ReactNode } from 'react'
+/** @jsxImportSource preact */
+import { useEffect, useRef } from 'preact/hooks'
+import type { ComponentChildren } from 'preact'
 
 export function IslandDialog({
   open,
@@ -16,7 +17,7 @@ export function IslandDialog({
   contentClassName: string
   titleId: string
   descriptionId?: string
-  children: ReactNode
+  children: ComponentChildren
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const previousFocus = useRef<HTMLElement | null>(null)
@@ -37,12 +38,15 @@ export function IslandDialog({
       previousFocus.current?.focus()
     }
   }, [open])
-  useEffect(
-    () => () => {
-      if (dialog.current?.open) dialog.current.close()
-    },
-    [],
-  )
+  useEffect(() => {
+    const element = dialog.current
+    return () => {
+      if (element?.open) {
+        element.close()
+        previousFocus.current?.focus()
+      }
+    }
+  }, [])
   return (
     <dialog
       ref={dialog}

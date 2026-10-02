@@ -1,5 +1,6 @@
-import { ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+/** @jsxImportSource preact */
+import { ChevronLeft, ChevronRight, X } from 'lucide-preact'
+import { useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { IslandDialog } from './IslandDialog'
 
 export type GalleryItem = {
@@ -40,7 +41,7 @@ export default function GalleryLightbox({
   const active = visible[index]
   const move = (step: number) =>
     onActiveChange(visible[(index + step + visible.length) % visible.length].id)
-  useEffect(() => {
+  useLayoutEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'ArrowLeft') move(-1)
       if (event.key === 'ArrowRight') move(1)

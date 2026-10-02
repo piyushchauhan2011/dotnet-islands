@@ -1,7 +1,10 @@
-import '../styles.scss'
-import { createElement, useEffect } from 'react'
-import type { ComponentType } from 'react'
-import { createRoot, hydrateRoot } from 'react-dom/client'
+/** @jsxImportSource preact */
+import { createElement, render, hydrate } from 'preact'
+import type { ComponentType } from 'preact'
+import { useEffect } from 'preact/hooks'
+
+// Dev-only HMR: a static import would make production lazy imports refetch inline CSS.
+if (import.meta.env.DEV) await import('../styles.scss')
 
 document.documentElement.classList.add('js-enabled')
 
@@ -58,8 +61,8 @@ async function mount(marker: HTMLElement) {
       return createElement(Component, props)
     }
 
-    if (hasMarkup) hydrateRoot(marker, createElement(Ready))
-    else createRoot(marker).render(createElement(Ready))
+    if (hasMarkup) hydrate(createElement(Ready, null), marker)
+    else render(createElement(Ready, null), marker)
   } catch (cause) {
     showFailure(cause)
   }

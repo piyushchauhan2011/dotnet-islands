@@ -85,8 +85,8 @@ async function render(job) {
       // Vite inserts hints while rendering islands. Persisting them would eagerly
       // fetch every captured chunk before the visitor actually needs it.
       root.querySelectorAll('link[rel="modulepreload"]').forEach(link => link.remove())
-      // CSR creates adjacent text nodes; HTML parsing would coalesce them. React hydration
-      // needs the same boundaries that renderToString normally marks with empty comments.
+      // Serialized HTML must preserve adjacent dynamic text-node boundaries.
+      // Otherwise HTML parsing coalesces nodes that the client hydrates separately.
       for (const island of root.querySelectorAll('[data-island]')) {
         const walker = document.createTreeWalker(island, NodeFilter.SHOW_TEXT)
         const adjacent = []

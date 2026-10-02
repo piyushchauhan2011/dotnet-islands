@@ -56,7 +56,17 @@ pnpm exec lhci collect --url=https://hotel-ssr-audit.ddev.site/hotels/jayanagar-
 
 Compare its CLS and filmstrip with the same flags before/after a change; these values are not comparable to the default desktop CI scores or to a differently configured Brave/Chrome DevTools profile. An HTTP/2 connection multiplexes requests but cannot prevent layout shifts caused by client-side markup replacement.
 
-For a JavaScript waterfall audit, rebuild and restart the API **and** snapshot worker, then wait for republished snapshots: older HTML contains Vite-inserted `modulepreload` links captured during publication. The worker removes those hints from new snapshots. On the home page, the search form and menu still hydrate on load, so their React and component chunks are expected; the calendar loads on date-picker activation and the menu dialog only when opened. In DevTools, disable cache and compare requests before and after opening those controls; a preload is a network request, not proof that a chunk executed.
+For a JavaScript waterfall audit, rebuild and restart the API **and** snapshot worker, then wait for republished snapshots: older HTML contains Vite-inserted `modulepreload` links captured during publication. The worker removes those hints from new snapshots. On the home page, the search form and menu hydrate on load using native Preact and component chunks; the calendar loads on date-picker activation and the menu dialog only when opened. Actual React/React DOM belongs only to admin, not the public static/dynamic closure. Use `modules.json` attribution rather than hashed chunk names to identify runtimes. In DevTools, disable cache and compare requests before and after opening those controls; a preload is a network request, not proof that a chunk executed.
+
+Public production pages embed the complete public stylesheet in `<head>` instead
+of linking it. Expect larger HTML responses and no initial public CSS request;
+the calendar still requests its small stylesheet on first activation. Admin
+stylesheets remain external. The stylesheet is cached by the API at startup:
+rebuild assets, restart the API and republish snapshots after CSS changes.
+Inlining removes a render-blocking request but repeats CSS on every HTML response
+and loses independent stylesheet caching; measure cold and repeat navigations
+before attributing a performance gain. Existing React/Preact benchmark artifacts
+predate CSS inlining and are not measurements of this release.
 
 ## Public PageSpeed Insights audit (Cloudflare quick tunnel)
 
@@ -91,3 +101,44 @@ Keep PostgreSQL data, uploaded media (`MEDIA_DIR`), Data Protection keys (`DATA_
 `pnpm images` generates both browser image variants and `wwwroot/images/image-manifest.json`, which Razor uses for responsive catalog cards. Commit the manifest alongside new variants and deploy them together. Fingerprinted `/images/gen/` files cache for a year; original `/images/` paths cache for one day because editors may replace them without changing the URL. Public and admin CSS are separate build entries; rebuild the API and worker together before measuring changes to public snapshots.
 
 If an image's file is missing, its database metadata cannot recreate it: re-upload the original and replace the old image path in affected content. If a new page stays 503, inspect worker logs and snapshot jobs; failed captures back off and do not publish partial HTML. Existing pages keep their last complete capture until a replacement is ready. Unpublished content is a real 404 and is removed from the sitemap. Admin seeding never rotates an existing user's credentials or overwrites edited catalog records.
+
+## Paired runtime benchmarks
+
+Use a dedicated seeded local database and isolated media/key directories. Export
+approved admin credentials; never put credentials or authenticated storage state in
+benchmark artifacts. Seeding preserves existing edits and credentials, so it is not
+a reset. Keep origin, fixtures, browser executables, tool versions and machine power
+mode identical across variants.
+
+Set `BENCHMARK_OUT` to a new `benchmark-results/<label>` root during the Vite build.
+The measurement-only hook writes `modules.json` outside the deployed asset tree;
+it does not change chunks or manifest entries. Restart .NET after rebuilding,
+stop the continuous worker, and drain `pnpm snapshots:all`. Before collecting,
+verify all four Lighthouse routes return current published HTML, canonical URLs,
+the manifest-selected runtime and `X-Snapshot-Version`, with no unpublished jobs.
+The snapshot version fingerprints source and origin as well as the manifest.
+
+```sh
+node scripts/benchmark-bundles.mjs --output benchmark-results/<label>/bundle
+pnpm exec tsx scripts/benchmark-journeys.ts --origin http://127.0.0.1:5000 --output benchmark-results/<label>/interactions --runs 10
+pnpm exec lhci autorun --config=./lighthouserc.cjs --collect.numberOfRuns=5 --upload.outputDir=./benchmark-results/<label>/desktop
+pnpm exec lhci autorun --config=./lighthouserc.mobile.cjs --collect.numberOfRuns=5 --upload.outputDir=./benchmark-results/<label>/mobile
+node scripts/compare-benchmarks.mjs --before benchmark-results/before-react --after benchmark-results/after-preact --output benchmark-results/comparison
+```
+
+Set `CHROME_PATH` to the same Chrome executable for both Lighthouse collections.
+Record `environment.json` in each root with source revision, manifest/lock hashes,
+OS/hardware, Node/pnpm/.NET, Chromium and Chrome paths/versions, Lighthouse version,
+origin/protocol, fixture identities and verified snapshot headers. Scripts reject
+nonempty output directories: retain failed runs and use a new experiment root.
+Run measurements serially, with no concurrent builds or other benchmarks.
+
+Bundle totals traverse only the current manifest, excluding retained old releases.
+Public/admin shared files count once in the combined deployed union. Gzip/Brotli
+sizes are synthetic per-file estimates, not network transfers. Journey CDP encoded
+bytes and resource decoded bytes are separate evidence. Browser input-to-next-frame
+timings and observed Event Timing durations are laboratory results, not field INP.
+Ten-run median/min/max are descriptive; no statistical-significance claim is made.
+Mobile journeys use 390×844 touch contexts, 4× CPU slowdown and explicit network
+emulation; mobile Lighthouse uses its version-pinned simulated mobile defaults.
+Existing desktop assertions remain acceptance gates; mobile has no copied gates.
